@@ -1,0 +1,565 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		/* Models */
+		100000000000000000000001 /* PlayerProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000001 /* PlayerProfile.swift */; };
+		100000000000000000000002 /* Session.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000002 /* Session.swift */; };
+		100000000000000000000003 /* Decision.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000003 /* Decision.swift */; };
+		100000000000000000000004 /* DailyActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000004 /* DailyActivity.swift */; };
+		100000000000000000000005 /* Achievement.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000005 /* Achievement.swift */; };
+		100000000000000000000006 /* APIModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000006 /* APIModels.swift */; };
+		/* Services */
+		100000000000000000000010 /* KeychainService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000010 /* KeychainService.swift */; };
+		100000000000000000000011 /* APIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000011 /* APIService.swift */; };
+		100000000000000000000012 /* GoogleAuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000012 /* GoogleAuthService.swift */; };
+		100000000000000000000013 /* GamificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000013 /* GamificationService.swift */; };
+		/* ViewModels */
+		100000000000000000000020 /* AuthViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000020 /* AuthViewModel.swift */; };
+		100000000000000000000021 /* SwipeViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000021 /* SwipeViewModel.swift */; };
+		100000000000000000000022 /* GamificationViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000022 /* GamificationViewModel.swift */; };
+		100000000000000000000023 /* StatsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000023 /* StatsViewModel.swift */; };
+		/* Persistence */
+		100000000000000000000030 /* PersistenceController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000030 /* PersistenceController.swift */; };
+		/* Views - Onboarding */
+		100000000000000000000040 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000040 /* OnboardingView.swift */; };
+		100000000000000000000041 /* GoogleSignInView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000041 /* GoogleSignInView.swift */; };
+		/* Views - Home */
+		100000000000000000000050 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000050 /* HomeView.swift */; };
+		/* Views - Swipe */
+		100000000000000000000060 /* EmailCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000060 /* EmailCardView.swift */; };
+		100000000000000000000061 /* EmailCardStack.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000061 /* EmailCardStack.swift */; };
+		100000000000000000000062 /* SwipeContainerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000062 /* SwipeContainerView.swift */; };
+		/* Views - Gamification */
+		100000000000000000000070 /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000070 /* ProfileView.swift */; };
+		100000000000000000000071 /* AchievementsGalleryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000071 /* AchievementsGalleryView.swift */; };
+		100000000000000000000072 /* StreakView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000072 /* StreakView.swift */; };
+		/* Views - Statistics */
+		100000000000000000000080 /* StatsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000080 /* StatsView.swift */; };
+		/* Views - Settings */
+		100000000000000000000090 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000090 /* SettingsView.swift */; };
+		/* App */
+		100000000000000000000100 /* JunkpileApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000100 /* JunkpileApp.swift */; };
+		/* Assets */
+		100000000000000000000200 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000200 /* Assets.xcassets */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		/* Product */
+		300000000000000000000001 /* Junkpile.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Junkpile.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		/* Models */
+		200000000000000000000001 /* PlayerProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerProfile.swift; sourceTree = "<group>"; };
+		200000000000000000000002 /* Session.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Session.swift; sourceTree = "<group>"; };
+		200000000000000000000003 /* Decision.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Decision.swift; sourceTree = "<group>"; };
+		200000000000000000000004 /* DailyActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyActivity.swift; sourceTree = "<group>"; };
+		200000000000000000000005 /* Achievement.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Achievement.swift; sourceTree = "<group>"; };
+		200000000000000000000006 /* APIModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIModels.swift; sourceTree = "<group>"; };
+		/* Services */
+		200000000000000000000010 /* KeychainService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainService.swift; sourceTree = "<group>"; };
+		200000000000000000000011 /* APIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIService.swift; sourceTree = "<group>"; };
+		200000000000000000000012 /* GoogleAuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoogleAuthService.swift; sourceTree = "<group>"; };
+		200000000000000000000013 /* GamificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GamificationService.swift; sourceTree = "<group>"; };
+		/* ViewModels */
+		200000000000000000000020 /* AuthViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthViewModel.swift; sourceTree = "<group>"; };
+		200000000000000000000021 /* SwipeViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwipeViewModel.swift; sourceTree = "<group>"; };
+		200000000000000000000022 /* GamificationViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GamificationViewModel.swift; sourceTree = "<group>"; };
+		200000000000000000000023 /* StatsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsViewModel.swift; sourceTree = "<group>"; };
+		/* Persistence */
+		200000000000000000000030 /* PersistenceController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceController.swift; sourceTree = "<group>"; };
+		/* Views - Onboarding */
+		200000000000000000000040 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
+		200000000000000000000041 /* GoogleSignInView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoogleSignInView.swift; sourceTree = "<group>"; };
+		/* Views - Home */
+		200000000000000000000050 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
+		/* Views - Swipe */
+		200000000000000000000060 /* EmailCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmailCardView.swift; sourceTree = "<group>"; };
+		200000000000000000000061 /* EmailCardStack.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmailCardStack.swift; sourceTree = "<group>"; };
+		200000000000000000000062 /* SwipeContainerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwipeContainerView.swift; sourceTree = "<group>"; };
+		/* Views - Gamification */
+		200000000000000000000070 /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
+		200000000000000000000071 /* AchievementsGalleryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AchievementsGalleryView.swift; sourceTree = "<group>"; };
+		200000000000000000000072 /* StreakView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreakView.swift; sourceTree = "<group>"; };
+		/* Views - Statistics */
+		200000000000000000000080 /* StatsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsView.swift; sourceTree = "<group>"; };
+		/* Views - Settings */
+		200000000000000000000090 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		/* App */
+		200000000000000000000100 /* JunkpileApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JunkpileApp.swift; sourceTree = "<group>"; };
+		/* Assets */
+		200000000000000000000200 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		/* Info.plist */
+		200000000000000000000300 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		400000000000000000000001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		500000000000000000000000 = {
+			isa = PBXGroup;
+			children = (
+				500000000000000000000001 /* Junkpile */,
+				500000000000000000000002 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		500000000000000000000001 /* Junkpile */ = {
+			isa = PBXGroup;
+			children = (
+				200000000000000000000100 /* JunkpileApp.swift */,
+				500000000000000000000010 /* Models */,
+				500000000000000000000020 /* Views */,
+				500000000000000000000030 /* ViewModels */,
+				500000000000000000000040 /* Services */,
+				500000000000000000000050 /* Persistence */,
+				500000000000000000000060 /* Resources */,
+			);
+			path = Junkpile;
+			sourceTree = "<group>";
+		};
+		500000000000000000000002 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				300000000000000000000001 /* Junkpile.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		500000000000000000000010 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				200000000000000000000001 /* PlayerProfile.swift */,
+				200000000000000000000002 /* Session.swift */,
+				200000000000000000000003 /* Decision.swift */,
+				200000000000000000000004 /* DailyActivity.swift */,
+				200000000000000000000005 /* Achievement.swift */,
+				200000000000000000000006 /* APIModels.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		500000000000000000000020 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				500000000000000000000021 /* Onboarding */,
+				500000000000000000000022 /* Home */,
+				500000000000000000000023 /* Swipe */,
+				500000000000000000000024 /* Gamification */,
+				500000000000000000000025 /* Statistics */,
+				500000000000000000000026 /* Settings */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		500000000000000000000021 /* Onboarding */ = {
+			isa = PBXGroup;
+			children = (
+				200000000000000000000040 /* OnboardingView.swift */,
+				200000000000000000000041 /* GoogleSignInView.swift */,
+			);
+			path = Onboarding;
+			sourceTree = "<group>";
+		};
+		500000000000000000000022 /* Home */ = {
+			isa = PBXGroup;
+			children = (
+				200000000000000000000050 /* HomeView.swift */,
+			);
+			path = Home;
+			sourceTree = "<group>";
+		};
+		500000000000000000000023 /* Swipe */ = {
+			isa = PBXGroup;
+			children = (
+				200000000000000000000060 /* EmailCardView.swift */,
+				200000000000000000000061 /* EmailCardStack.swift */,
+				200000000000000000000062 /* SwipeContainerView.swift */,
+			);
+			path = Swipe;
+			sourceTree = "<group>";
+		};
+		500000000000000000000024 /* Gamification */ = {
+			isa = PBXGroup;
+			children = (
+				200000000000000000000070 /* ProfileView.swift */,
+				200000000000000000000071 /* AchievementsGalleryView.swift */,
+				200000000000000000000072 /* StreakView.swift */,
+			);
+			path = Gamification;
+			sourceTree = "<group>";
+		};
+		500000000000000000000025 /* Statistics */ = {
+			isa = PBXGroup;
+			children = (
+				200000000000000000000080 /* StatsView.swift */,
+			);
+			path = Statistics;
+			sourceTree = "<group>";
+		};
+		500000000000000000000026 /* Settings */ = {
+			isa = PBXGroup;
+			children = (
+				200000000000000000000090 /* SettingsView.swift */,
+			);
+			path = Settings;
+			sourceTree = "<group>";
+		};
+		500000000000000000000030 /* ViewModels */ = {
+			isa = PBXGroup;
+			children = (
+				200000000000000000000020 /* AuthViewModel.swift */,
+				200000000000000000000021 /* SwipeViewModel.swift */,
+				200000000000000000000022 /* GamificationViewModel.swift */,
+				200000000000000000000023 /* StatsViewModel.swift */,
+			);
+			path = ViewModels;
+			sourceTree = "<group>";
+		};
+		500000000000000000000040 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				200000000000000000000010 /* KeychainService.swift */,
+				200000000000000000000011 /* APIService.swift */,
+				200000000000000000000012 /* GoogleAuthService.swift */,
+				200000000000000000000013 /* GamificationService.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		500000000000000000000050 /* Persistence */ = {
+			isa = PBXGroup;
+			children = (
+				200000000000000000000030 /* PersistenceController.swift */,
+			);
+			path = Persistence;
+			sourceTree = "<group>";
+		};
+		500000000000000000000060 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				200000000000000000000200 /* Assets.xcassets */,
+				200000000000000000000300 /* Info.plist */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		600000000000000000000001 /* Junkpile */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 700000000000000000000001 /* Build configuration list for PBXNativeTarget "Junkpile" */;
+			buildPhases = (
+				400000000000000000000002 /* Sources */,
+				400000000000000000000001 /* Frameworks */,
+				400000000000000000000003 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = Junkpile;
+			productName = Junkpile;
+			productReference = 300000000000000000000001 /* Junkpile.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		800000000000000000000001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1500;
+				LastUpgradeCheck = 1500;
+				TargetAttributes = {
+					600000000000000000000001 = {
+						CreatedOnToolsVersion = 15.0;
+					};
+				};
+			};
+			buildConfigurationList = 700000000000000000000002 /* Build configuration list for PBXProject "Junkpile" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 500000000000000000000000;
+			productRefGroup = 500000000000000000000002 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				600000000000000000000001 /* Junkpile */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		400000000000000000000003 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				100000000000000000000200 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		400000000000000000000002 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				100000000000000000000001 /* PlayerProfile.swift in Sources */,
+				100000000000000000000002 /* Session.swift in Sources */,
+				100000000000000000000003 /* Decision.swift in Sources */,
+				100000000000000000000004 /* DailyActivity.swift in Sources */,
+				100000000000000000000005 /* Achievement.swift in Sources */,
+				100000000000000000000006 /* APIModels.swift in Sources */,
+				100000000000000000000010 /* KeychainService.swift in Sources */,
+				100000000000000000000011 /* APIService.swift in Sources */,
+				100000000000000000000012 /* GoogleAuthService.swift in Sources */,
+				100000000000000000000013 /* GamificationService.swift in Sources */,
+				100000000000000000000020 /* AuthViewModel.swift in Sources */,
+				100000000000000000000021 /* SwipeViewModel.swift in Sources */,
+				100000000000000000000022 /* GamificationViewModel.swift in Sources */,
+				100000000000000000000023 /* StatsViewModel.swift in Sources */,
+				100000000000000000000030 /* PersistenceController.swift in Sources */,
+				100000000000000000000040 /* OnboardingView.swift in Sources */,
+				100000000000000000000041 /* GoogleSignInView.swift in Sources */,
+				100000000000000000000050 /* HomeView.swift in Sources */,
+				100000000000000000000060 /* EmailCardView.swift in Sources */,
+				100000000000000000000061 /* EmailCardStack.swift in Sources */,
+				100000000000000000000062 /* SwipeContainerView.swift in Sources */,
+				100000000000000000000070 /* ProfileView.swift in Sources */,
+				100000000000000000000071 /* AchievementsGalleryView.swift in Sources */,
+				100000000000000000000072 /* StreakView.swift in Sources */,
+				100000000000000000000080 /* StatsView.swift in Sources */,
+				100000000000000000000090 /* SettingsView.swift in Sources */,
+				100000000000000000000100 /* JunkpileApp.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		900000000000000000000001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		900000000000000000000002 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		900000000000000000000003 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Junkpile/Resources/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Junkpile;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.junkpile.app;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		900000000000000000000004 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Junkpile/Resources/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Junkpile;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.junkpile.app;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		700000000000000000000001 /* Build configuration list for PBXNativeTarget "Junkpile" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				900000000000000000000003 /* Debug */,
+				900000000000000000000004 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		700000000000000000000002 /* Build configuration list for PBXProject "Junkpile" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				900000000000000000000001 /* Debug */,
+				900000000000000000000002 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 800000000000000000000001 /* Project object */;
+}
