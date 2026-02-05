@@ -1,0 +1,56 @@
+# Dependencies
+node_modules/
+
+# Data files (may contain sensitive info)
+data/*.json
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Credentials (NEVER commit these)
+gmail_secret.json
+*_secret.json
+credentials.json
+client_secret*.json
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# iOS / Xcode
+ios/Junkpile/build/
+ios/Junkpile/DerivedData/
+*.xcodeproj/project.xcworkspace/
+*.xcodeproj/xcuserdata/
+*.xcworkspace/xcuserdata/
+*.pbxuser
+*.mode1v3
+*.mode2v3
+*.perspectivev3
+*.xcuserstate
+*.xccheckout
+*.xcscmblueprint
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# Swift Package Manager
+.build/
+Packages/
+Package.resolved
+
+# CocoaPods (if used later)
+Pods/

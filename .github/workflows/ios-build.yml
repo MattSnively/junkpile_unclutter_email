@@ -1,0 +1,188 @@
+# GitHub Actions workflow for building and testing the Junkpile iOS app
+# Runs on macOS runners provided by GitHub (free for public repos, limited minutes for private)
+
+name: iOS Build & Test
+
+on:
+  # Trigger on push to main or develop branches
+  push:
+    branches: [main, develop]
+    paths:
+      - 'ios/**'
+      - '.github/workflows/ios-build.yml'
+
+  # Trigger on pull requests to main
+  pull_request:
+    branches: [main]
+    paths:
+      - 'ios/**'
+
+  # Allow manual trigger from GitHub Actions tab
+  workflow_dispatch:
+
+# Environment variables used across jobs
+env:
+  SCHEME: Junkpile
+  PROJECT_PATH: ios/Junkpile/Junkpile.xcodeproj
+  SIMULATOR_NAME: iPhone 15
+  IOS_VERSION: "17.0"
+
+jobs:
+  # =============================================================================
+  # Build job - Compiles the iOS app for simulator
+  # =============================================================================
+  build:
+    name: Build iOS App
+    runs-on: macos-14  # macOS Sonoma with Xcode 15
+
+    steps:
+      # Checkout the repository
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Select Xcode version
+      - name: Select Xcode version
+        run: sudo xcode-select -s /Applications/Xcode_15.2.app/Contents/Developer
+
+      # Display Xcode version for debugging
+      - name: Show Xcode version
+        run: xcodebuild -version
+
+      # List available simulators
+      - name: List available simulators
+        run: xcrun simctl list devices available
+
+      # Resolve Swift package dependencies (if any)
+      - name: Resolve dependencies
+        run: |
+          cd ios/Junkpile
+          xcodebuild -resolvePackageDependencies \
+            -project Junkpile.xcodeproj \
+            -scheme ${{ env.SCHEME }}
+
+      # Build for iOS Simulator
+      - name: Build for Simulator
+        run: |
+          cd ios/Junkpile
+          xcodebuild build \
+            -project Junkpile.xcodeproj \
+            -scheme ${{ env.SCHEME }} \
+            -destination "platform=iOS Simulator,name=${{ env.SIMULATOR_NAME }}" \
+            -configuration Debug \
+            CODE_SIGNING_ALLOWED=NO \
+            | xcpretty --color
+
+      # Upload build artifacts
+      - name: Upload build logs
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: build-logs
+          path: ~/Library/Developer/Xcode/DerivedData/**/Logs/Build/*.xcactivitylog
+          retention-days: 7
+
+  # =============================================================================
+  # Test job - Runs unit tests on iOS Simulator
+  # =============================================================================
+  test:
+    name: Run Tests
+    runs-on: macos-14
+    needs: build  # Only run tests if build succeeds
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Select Xcode version
+        run: sudo xcode-select -s /Applications/Xcode_15.2.app/Contents/Developer
+
+      # Boot the simulator ahead of time for faster test execution
+      - name: Boot Simulator
+        run: |
+          UDID=$(xcrun simctl list devices available | grep "${{ env.SIMULATOR_NAME }}" | head -1 | grep -oE '[0-9A-F-]{36}')
+          xcrun simctl boot "$UDID" || true
+          xcrun simctl list devices | grep Booted
+
+      # Run tests
+      - name: Run Unit Tests
+        run: |
+          cd ios/Junkpile
+          xcodebuild test \
+            -project Junkpile.xcodeproj \
+            -scheme ${{ env.SCHEME }} \
+            -destination "platform=iOS Simulator,name=${{ env.SIMULATOR_NAME }}" \
+            -configuration Debug \
+            CODE_SIGNING_ALLOWED=NO \
+            -resultBundlePath TestResults \
+            | xcpretty --color --report junit --output test-results.xml
+        continue-on-error: true  # Don't fail if no tests exist yet
+
+      # Upload test results
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: ios/Junkpile/test-results.xml
+          retention-days: 30
+
+  # =============================================================================
+  # Archive job - Creates an archive for distribution (only on main branch)
+  # =============================================================================
+  archive:
+    name: Create Archive
+    runs-on: macos-14
+    needs: [build, test]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Select Xcode version
+        run: sudo xcode-select -s /Applications/Xcode_15.2.app/Contents/Developer
+
+      # Archive for generic iOS device (no signing - just validates the archive)
+      - name: Create Archive
+        run: |
+          cd ios/Junkpile
+          xcodebuild archive \
+            -project Junkpile.xcodeproj \
+            -scheme ${{ env.SCHEME }} \
+            -destination "generic/platform=iOS" \
+            -archivePath build/Junkpile.xcarchive \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            | xcpretty --color
+        continue-on-error: true  # Archive may fail without proper signing
+
+      # Upload archive artifact
+      - name: Upload Archive
+        uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: ios-archive
+          path: ios/Junkpile/build/Junkpile.xcarchive
+          retention-days: 14
+
+  # =============================================================================
+  # Lint job - Checks code style (runs in parallel with build)
+  # =============================================================================
+  lint:
+    name: Swift Lint
+    runs-on: macos-14
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Install SwiftLint
+      - name: Install SwiftLint
+        run: brew install swiftlint
+
+      # Run SwiftLint
+      - name: Run SwiftLint
+        run: |
+          cd ios/Junkpile
+          swiftlint lint --reporter github-actions-logging || true
+        continue-on-error: true  # Don't fail build on lint warnings

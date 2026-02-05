@@ -1,0 +1,307 @@
+import SwiftUI
+
+/// OnboardingView is the main entry point for unauthenticated users.
+/// Guides users through the app introduction and Google sign-in process.
+struct OnboardingView: View {
+
+    // MARK: - Environment
+
+    @EnvironmentObject var authViewModel: AuthViewModel
+
+    // MARK: - State
+
+    /// Current page in the onboarding carousel
+    @State private var currentPage = 0
+
+    /// Whether to show the sign-in view
+    @State private var showSignIn = false
+
+    // MARK: - Body
+
+    var body: some View {
+        ZStack {
+            // Background
+            Color.white.ignoresSafeArea()
+
+            VStack(spacing: 0) {
+                // Page indicator and skip button
+                header
+
+                // Onboarding pages
+                TabView(selection: $currentPage) {
+                    WelcomePage()
+                        .tag(0)
+
+                    HowItWorksPage()
+                        .tag(1)
+
+                    GamificationPage()
+                        .tag(2)
+                }
+                .tabViewStyle(.page(indexDisplayMode: .never))
+
+                // Page dots
+                pageIndicator
+                    .padding(.vertical, 20)
+
+                // Action button
+                actionButton
+                    .padding(.horizontal, 24)
+                    .padding(.bottom, 40)
+            }
+        }
+        .sheet(isPresented: $showSignIn) {
+            GoogleSignInView()
+        }
+    }
+
+    // MARK: - Components
+
+    /// Header with skip button
+    private var header: some View {
+        HStack {
+            Spacer()
+
+            // Skip button (only on first pages)
+            if currentPage < 2 {
+                Button("Skip") {
+                    withAnimation {
+                        currentPage = 2
+                    }
+                }
+                .font(.body)
+                .foregroundColor(.gray)
+            }
+        }
+        .padding(.horizontal, 24)
+        .padding(.top, 16)
+        .frame(height: 44)
+    }
+
+    /// Page indicator dots
+    private var pageIndicator: some View {
+        HStack(spacing: 8) {
+            ForEach(0..<3, id: \.self) { index in
+                Circle()
+                    .fill(index == currentPage ? Color.black : Color.gray.opacity(0.3))
+                    .frame(width: 8, height: 8)
+                    .animation(.easeInOut(duration: 0.2), value: currentPage)
+            }
+        }
+    }
+
+    /// Primary action button
+    private var actionButton: some View {
+        Button {
+            if currentPage < 2 {
+                withAnimation {
+                    currentPage += 1
+                }
+            } else {
+                showSignIn = true
+            }
+        } label: {
+            Text(currentPage < 2 ? "Next" : "Get Started")
+                .font(.headline)
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity)
+                .frame(height: 56)
+                .background(Color.black)
+                .cornerRadius(12)
+        }
+    }
+}
+
+// MARK: - Welcome Page
+
+/// First onboarding page introducing the app concept
+struct WelcomePage: View {
+
+    var body: some View {
+        VStack(spacing: 24) {
+            Spacer()
+
+            // App icon/illustration
+            Image(systemName: "envelope.badge.shield.half.filled")
+                .font(.system(size: 100))
+                .foregroundStyle(.black, .red)
+
+            // Title
+            Text("Take Control of\nYour Inbox")
+                .font(.system(size: 32, weight: .bold))
+                .multilineTextAlignment(.center)
+                .foregroundColor(.black)
+
+            // Description
+            Text("Swipe through unwanted subscriptions and reclaim your email in minutes.")
+                .font(.body)
+                .foregroundColor(.gray)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 32)
+
+            Spacer()
+            Spacer()
+        }
+    }
+}
+
+// MARK: - How It Works Page
+
+/// Second onboarding page explaining the swipe mechanics
+struct HowItWorksPage: View {
+
+    var body: some View {
+        VStack(spacing: 32) {
+            Spacer()
+
+            // Title
+            Text("Simple as Swipe")
+                .font(.system(size: 32, weight: .bold))
+                .foregroundColor(.black)
+
+            // Instructions
+            VStack(spacing: 24) {
+                // Swipe left instruction
+                HStack(spacing: 16) {
+                    ZStack {
+                        Circle()
+                            .fill(Color.red.opacity(0.1))
+                            .frame(width: 60, height: 60)
+
+                        Image(systemName: "arrow.left")
+                            .font(.title2)
+                            .foregroundColor(.red)
+                    }
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Swipe Left")
+                            .font(.headline)
+                            .foregroundColor(.black)
+
+                        Text("Unsubscribe from unwanted emails")
+                            .font(.subheadline)
+                            .foregroundColor(.gray)
+                    }
+
+                    Spacer()
+                }
+
+                // Swipe right instruction
+                HStack(spacing: 16) {
+                    ZStack {
+                        Circle()
+                            .fill(Color.green.opacity(0.1))
+                            .frame(width: 60, height: 60)
+
+                        Image(systemName: "arrow.right")
+                            .font(.title2)
+                            .foregroundColor(.green)
+                    }
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Swipe Right")
+                            .font(.headline)
+                            .foregroundColor(.black)
+
+                        Text("Keep emails you want to receive")
+                            .font(.subheadline)
+                            .foregroundColor(.gray)
+                    }
+
+                    Spacer()
+                }
+            }
+            .padding(.horizontal, 40)
+
+            Spacer()
+            Spacer()
+        }
+    }
+}
+
+// MARK: - Gamification Page
+
+/// Third onboarding page introducing gamification features
+struct GamificationPage: View {
+
+    var body: some View {
+        VStack(spacing: 32) {
+            Spacer()
+
+            // Title
+            Text("Level Up Your\nInbox Game")
+                .font(.system(size: 32, weight: .bold))
+                .multilineTextAlignment(.center)
+                .foregroundColor(.black)
+
+            // Feature list
+            VStack(spacing: 20) {
+                // XP and Levels
+                featureRow(
+                    icon: "arrow.up.circle.fill",
+                    title: "Earn XP & Level Up",
+                    description: "Gain experience with every decision"
+                )
+
+                // Achievements
+                featureRow(
+                    icon: "trophy.fill",
+                    title: "Unlock Achievements",
+                    description: "Collect badges for your accomplishments"
+                )
+
+                // Streaks
+                featureRow(
+                    icon: "flame.fill",
+                    title: "Build Streaks",
+                    description: "Stay consistent for bonus rewards"
+                )
+            }
+            .padding(.horizontal, 32)
+
+            Spacer()
+            Spacer()
+        }
+    }
+
+    /// Creates a feature row with icon, title, and description
+    private func featureRow(icon: String, title: String, description: String) -> some View {
+        HStack(spacing: 16) {
+            Image(systemName: icon)
+                .font(.title)
+                .foregroundColor(.black)
+                .frame(width: 44, height: 44)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.headline)
+                    .foregroundColor(.black)
+
+                Text(description)
+                    .font(.subheadline)
+                    .foregroundColor(.gray)
+            }
+
+            Spacer()
+        }
+    }
+}
+
+// MARK: - Previews
+
+#Preview("Onboarding") {
+    OnboardingView()
+        .environmentObject(AuthViewModel())
+}
+
+#Preview("Welcome Page") {
+    WelcomePage()
+}
+
+#Preview("How It Works Page") {
+    HowItWorksPage()
+}
+
+#Preview("Gamification Page") {
+    GamificationPage()
+}

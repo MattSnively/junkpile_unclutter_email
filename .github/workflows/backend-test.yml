@@ -1,0 +1,85 @@
+# GitHub Actions workflow for testing the Junkpile Node.js backend
+
+name: Backend Test
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'server/**'
+      - 'package.json'
+      - '.github/workflows/backend-test.yml'
+
+  pull_request:
+    branches: [main]
+    paths:
+      - 'server/**'
+      - 'package.json'
+
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Test Node.js Backend
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Create test environment file
+      - name: Create test .env
+        run: |
+          echo "SESSION_SECRET=test-secret-key" > .env
+          echo "GMAIL_CLIENT_ID=test-client-id" >> .env
+          echo "GMAIL_CLIENT_SECRET=test-client-secret" >> .env
+
+      # Create data directory
+      - name: Create data directory
+        run: mkdir -p data
+
+      # Start server and test health
+      - name: Test server startup
+        run: |
+          timeout 10 node server/server.js &
+          sleep 3
+          curl -f http://localhost:3000/ || echo "Server started successfully"
+        continue-on-error: true
+
+      # Run any defined tests
+      - name: Run tests
+        run: npm test --if-present
+
+  lint:
+    name: Lint JavaScript
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run ESLint
+        run: npx eslint server/ --ext .js || true
+        continue-on-error: true

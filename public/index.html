@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Junkpile - Unclutter Your Inbox</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header>
+        <h1>📧 Junkpile</h1>
+        <p class="tagline">Swipe to unclutter your inbox</p>
+    </header>
+
+    <div class="main-wrapper">
+        <div class="envelope-pile left" id="unsubscribePile"></div>
+
+        <div class="container">
+            <div class="connect-section" id="connectSection">
+                <button class="connect-btn" id="connectBtn">Connect Gmail</button>
+                <p class="helper-text">Connect your Gmail to start cleaning up subscriptions</p>
+            </div>
+
+            <div class="swipe-section hidden" id="swipeSection">
+                <div class="stats">
+                    <div class="stat">
+                        <span class="stat-number" id="unsubscribeCount">0</span>
+                        <span class="stat-label">Unsubscribed</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-number" id="remainingCount">0</span>
+                        <span class="stat-label">Remaining</span>
+                    </div>
+                </div>
+
+                <div class="card-container" id="cardContainer">
+                    <div class="card" id="emailCard">
+                        <div class="card-content">
+                            <div class="email-header">
+                                <div class="sender" id="cardSender">Loading...</div>
+                                <div class="subject" id="cardSubject"></div>
+                            </div>
+                            <div class="email-body" id="cardBody"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="swipe-indicators">
+                    <div class="indicator unsubscribe">
+                        <span class="icon">👈</span>
+                        <span class="label">Unsubscribe</span>
+                    </div>
+                    <div class="indicator keep">
+                        <span class="label">Keep</span>
+                        <span class="icon">👉</span>
+                    </div>
+                </div>
+
+                <div class="instructions">
+                    Swipe left to unsubscribe, right to keep
+                </div>
+            </div>
+
+            <div class="complete-section hidden" id="completeSection">
+                <h2>All done!</h2>
+                <p>You've cleared your inbox of unwanted subscriptions.</p>
+                <div class="summary" id="summary"></div>
+                <button class="restart-btn" id="restartBtn">Start Over</button>
+            </div>
+        </div>
+
+        <div class="envelope-pile right" id="keepPile"></div>
+    </div>
+
+    <script src="js/app.js"></script>
+</body>
+</html>
