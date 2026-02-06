@@ -46,15 +46,42 @@ struct RootView: View {
 
     var body: some View {
         Group {
-            if authViewModel.isAuthenticated {
+            switch authViewModel.authState {
+            case .unknown:
+                // Credentials are being validated — show branded splash
+                // to prevent the onboarding view from flashing briefly
+                SplashView()
+            case .authenticated:
                 // User is authenticated, show main app
                 MainTabView()
-            } else {
+            case .unauthenticated:
                 // User needs to authenticate
                 OnboardingView()
             }
         }
-        .animation(.easeInOut, value: authViewModel.isAuthenticated)
+        .animation(.easeInOut, value: authViewModel.authState)
+    }
+}
+
+// MARK: - Tab Definition
+
+/// Available tabs in the app. Defined at file scope so child views
+/// (e.g. SessionCompleteView) can accept a Binding<Tab> to navigate
+/// the user to other tabs after completing a session.
+enum Tab: String, CaseIterable {
+    case home = "Home"
+    case swipe = "Swipe"
+    case stats = "Stats"
+    case settings = "Settings"
+
+    /// SF Symbol icon for each tab
+    var iconName: String {
+        switch self {
+        case .home: return "house.fill"
+        case .swipe: return "hand.draw.fill"
+        case .stats: return "chart.bar.fill"
+        case .settings: return "gearshape.fill"
+        }
     }
 }
 
@@ -64,28 +91,9 @@ struct MainTabView: View {
 
     // MARK: - State
 
-    /// Currently selected tab
-    @State private var selectedTab: Tab = .home
-
-    // MARK: - Tab Definition
-
-    /// Available tabs in the app
-    enum Tab: String, CaseIterable {
-        case home = "Home"
-        case swipe = "Swipe"
-        case stats = "Stats"
-        case settings = "Settings"
-
-        /// SF Symbol icon for each tab
-        var iconName: String {
-            switch self {
-            case .home: return "house.fill"
-            case .swipe: return "hand.draw.fill"
-            case .stats: return "chart.bar.fill"
-            case .settings: return "gearshape.fill"
-            }
-        }
-    }
+    /// Currently selected tab — persisted via @SceneStorage so the tab
+    /// survives backgrounding and scene recreation without resetting to .home
+    @SceneStorage("selectedTab") private var selectedTab: Tab = .home
 
     // MARK: - Body
 
@@ -99,7 +107,7 @@ struct MainTabView: View {
                 .tag(Tab.home)
 
             // Swipe tab - Main email swiping interface
-            SwipeContainerView()
+            SwipeContainerView(selectedTab: $selectedTab)
                 .tabItem {
                     Label(Tab.swipe.rawValue, systemImage: Tab.swipe.iconName)
                 }
@@ -127,7 +135,7 @@ struct MainTabView: View {
 
 #Preview("Root View - Authenticated") {
     let authVM = AuthViewModel()
-    authVM.isAuthenticated = true
+    authVM.authState = .authenticated
 
     return RootView()
         .environmentObject(authVM)

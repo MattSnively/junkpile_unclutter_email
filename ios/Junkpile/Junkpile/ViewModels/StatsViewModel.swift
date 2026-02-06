@@ -25,6 +25,9 @@ final class StatsViewModel: ObservableObject {
     /// Unsubscribe rate percentage
     @Published var unsubscribeRate: Double = 0
 
+    /// Previous week's activity data for week-over-week comparison
+    @Published var previousWeekData: [DailyChartData] = []
+
     /// Whether data is loading
     @Published var isLoading = false
 
@@ -50,8 +53,9 @@ final class StatsViewModel: ObservableObject {
 
         isLoading = true
 
-        // Load weekly data for charts
+        // Load weekly data for charts (current and previous week)
         loadWeeklyData(context: context)
+        loadPreviousWeekData(context: context)
 
         // Load recent sessions
         loadRecentSessions(context: context)
@@ -64,6 +68,51 @@ final class StatsViewModel: ObservableObject {
 
     /// Refreshes all data.
     func refresh() {
+        loadData()
+    }
+
+    // MARK: - Session Deletion
+
+    /// Deletes a session by ID and adjusts the player profile's lifetime stats.
+    /// Reverses unsubscribes, keeps, points, XP, and session count on the profile.
+    /// Recalculates level from adjusted XP. Cascade deletes all associated Decisions.
+    /// Does NOT adjust streak or DailyActivity data — reversing historical streaks
+    /// is too complex and error-prone.
+    /// - Parameter sessionId: The UUID of the session to delete
+    func deleteSession(id sessionId: UUID) {
+        guard let context = modelContext else { return }
+
+        // Fetch the actual Session model object from SwiftData
+        let descriptor = FetchDescriptor<Session>(
+            predicate: #Predicate { $0.id == sessionId }
+        )
+
+        guard let session = try? context.fetch(descriptor).first else { return }
+
+        // Adjust PlayerProfile lifetime stats to undo this session's contributions
+        if let email = KeychainService.shared.getUserEmail() {
+            let profileDescriptor = FetchDescriptor<PlayerProfile>(
+                predicate: #Predicate { $0.email == email }
+            )
+
+            if let profile = try? context.fetch(profileDescriptor).first {
+                // Reverse the counts — clamp to zero to prevent negative values
+                profile.lifetimeUnsubscribes = max(0, profile.lifetimeUnsubscribes - session.unsubscribeCount)
+                profile.lifetimeKeeps = max(0, profile.lifetimeKeeps - session.keepCount)
+                profile.totalSessionsCompleted = max(0, profile.totalSessionsCompleted - 1)
+                profile.totalPoints = max(0, profile.totalPoints - session.pointsEarned)
+                profile.totalXP = max(0, profile.totalXP - session.xpEarned)
+
+                // Recalculate level from the adjusted XP total
+                profile.currentLevel = PlayerProfile.calculateLevel(forXP: profile.totalXP)
+            }
+        }
+
+        // Delete the session — cascade rule deletes associated Decisions
+        context.delete(session)
+
+        // Save changes and reload the view data
+        try? context.save()
         loadData()
     }
 
@@ -95,6 +144,28 @@ final class StatsViewModel: ObservableObject {
         }
 
         weeklyData = chartData
+    }
+
+    /// Loads the previous 7-day window (days 8-14 ago) for week-over-week comparison.
+    private func loadPreviousWeekData(context: ModelContext) {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        guard let prevWeekEnd = calendar.date(byAdding: .day, value: -7, to: today),
+              let prevWeekStart = calendar.date(byAdding: .day, value: -13, to: today) else { return }
+
+        let activities = context.getDailyActivities(from: prevWeekStart, to: prevWeekEnd)
+
+        var chartData: [DailyChartData] = []
+        for dayOffset in 0..<7 {
+            guard let date = calendar.date(byAdding: .day, value: dayOffset, to: prevWeekStart) else { continue }
+            let dayActivity = activities.first { calendar.isDate($0.date, inSameDayAs: date) }
+            chartData.append(DailyChartData(
+                date: date,
+                unsubscribes: dayActivity?.unsubscribeCount ?? 0,
+                keeps: dayActivity?.keepCount ?? 0
+            ))
+        }
+        previousWeekData = chartData
     }
 
     /// Loads recent session summaries.
@@ -156,6 +227,33 @@ final class StatsViewModel: ObservableObject {
     var weeklyAverage: Double {
         guard !weeklyData.isEmpty else { return 0 }
         return Double(weeklyTotal) / Double(weeklyData.count)
+    }
+
+    // MARK: - Week-over-Week Trending
+
+    /// Previous week's total emails processed
+    var previousWeekTotal: Int {
+        previousWeekData.reduce(0) { $0 + $1.total }
+    }
+
+    /// Week-over-week percentage change in total emails processed.
+    /// Returns nil if the previous week had no activity (avoid divide-by-zero).
+    /// Positive = improvement, negative = decline.
+    var weekOverWeekChange: Double? {
+        guard previousWeekTotal > 0 else { return nil }
+        return (Double(weeklyTotal - previousWeekTotal) / Double(previousWeekTotal)) * 100
+    }
+
+    /// Previous week's total unsubscribes
+    var previousWeekUnsubscribes: Int {
+        previousWeekData.reduce(0) { $0 + $1.unsubscribes }
+    }
+
+    /// Week-over-week percentage change in unsubscribes.
+    /// Returns nil if the previous week had no unsubscribes.
+    var weekOverWeekUnsubscribeChange: Double? {
+        guard previousWeekUnsubscribes > 0 else { return nil }
+        return (Double(weeklyUnsubscribes - previousWeekUnsubscribes) / Double(previousWeekUnsubscribes)) * 100
     }
 }
 

@@ -108,6 +108,35 @@ final class Session {
         self.isCompleted = true
     }
 
+    /// Removes a decision from this session and reverses its counters.
+    /// Used by the undo system to roll back a swipe decision within
+    /// the undo window. Also uncompletes the session if it was marked complete,
+    /// since the user is returning to the card they just swiped.
+    /// - Parameter decision: The Decision to remove
+    func removeDecision(_ decision: Decision) {
+        // Remove the decision from the array
+        decisions.removeAll { $0.id == decision.id }
+
+        // Reverse the action-specific count
+        switch decision.action {
+        case .unsubscribe:
+            unsubscribeCount -= 1
+        case .keep:
+            keepCount -= 1
+        }
+
+        // Reverse points and XP awarded by this decision
+        pointsEarned -= decision.pointsAwarded
+        xpEarned -= decision.xpAwarded
+
+        // If the session was completed (user swiped the last card and then undid it),
+        // revert to in-progress so they can continue swiping
+        if isCompleted {
+            isCompleted = false
+            endTime = nil
+        }
+    }
+
     /// Adds a decision to this session and updates counters.
     /// - Parameter decision: The Decision to add
     func addDecision(_ decision: Decision) {

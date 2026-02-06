@@ -34,9 +34,6 @@ struct OnboardingView: View {
 
                     HowItWorksPage()
                         .tag(1)
-
-                    GamificationPage()
-                        .tag(2)
                 }
                 .tabViewStyle(.page(indexDisplayMode: .never))
 
@@ -62,11 +59,11 @@ struct OnboardingView: View {
         HStack {
             Spacer()
 
-            // Skip button (only on first pages)
-            if currentPage < 2 {
+            // Skip button (only on first page — page 1 is the last page)
+            if currentPage < 1 {
                 Button("Skip") {
                     withAnimation {
-                        currentPage = 2
+                        currentPage = 1
                     }
                 }
                 .font(.body)
@@ -78,22 +75,24 @@ struct OnboardingView: View {
         .frame(height: 44)
     }
 
-    /// Page indicator dots
+    /// Page indicator dots — VoiceOver reads current position
     private var pageIndicator: some View {
         HStack(spacing: 8) {
-            ForEach(0..<3, id: \.self) { index in
+            ForEach(0..<2, id: \.self) { index in
                 Circle()
                     .fill(index == currentPage ? Color.black : Color.gray.opacity(0.3))
                     .frame(width: 8, height: 8)
                     .animation(.easeInOut(duration: 0.2), value: currentPage)
             }
         }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Page \(currentPage + 1) of 2")
     }
 
-    /// Primary action button
+    /// Primary action button — "Next" on page 0, "Get Started" on page 1 (final page)
     private var actionButton: some View {
         Button {
-            if currentPage < 2 {
+            if currentPage < 1 {
                 withAnimation {
                     currentPage += 1
                 }
@@ -101,7 +100,7 @@ struct OnboardingView: View {
                 showSignIn = true
             }
         } label: {
-            Text(currentPage < 2 ? "Next" : "Get Started")
+            Text(currentPage < 1 ? "Next" : "Get Started")
                 .font(.headline)
                 .foregroundColor(.white)
                 .frame(maxWidth: .infinity)
@@ -109,6 +108,8 @@ struct OnboardingView: View {
                 .background(Color.black)
                 .cornerRadius(12)
         }
+        .accessibilityLabel(currentPage < 1 ? "Next" : "Get Started")
+        .accessibilityHint(currentPage < 1 ? "Go to next onboarding page" : "Sign in with Google to start using Junkpile")
     }
 }
 
@@ -219,74 +220,6 @@ struct HowItWorksPage: View {
     }
 }
 
-// MARK: - Gamification Page
-
-/// Third onboarding page introducing gamification features
-struct GamificationPage: View {
-
-    var body: some View {
-        VStack(spacing: 32) {
-            Spacer()
-
-            // Title
-            Text("Level Up Your\nInbox Game")
-                .font(.system(size: 32, weight: .bold))
-                .multilineTextAlignment(.center)
-                .foregroundColor(.black)
-
-            // Feature list
-            VStack(spacing: 20) {
-                // XP and Levels
-                featureRow(
-                    icon: "arrow.up.circle.fill",
-                    title: "Earn XP & Level Up",
-                    description: "Gain experience with every decision"
-                )
-
-                // Achievements
-                featureRow(
-                    icon: "trophy.fill",
-                    title: "Unlock Achievements",
-                    description: "Collect badges for your accomplishments"
-                )
-
-                // Streaks
-                featureRow(
-                    icon: "flame.fill",
-                    title: "Build Streaks",
-                    description: "Stay consistent for bonus rewards"
-                )
-            }
-            .padding(.horizontal, 32)
-
-            Spacer()
-            Spacer()
-        }
-    }
-
-    /// Creates a feature row with icon, title, and description
-    private func featureRow(icon: String, title: String, description: String) -> some View {
-        HStack(spacing: 16) {
-            Image(systemName: icon)
-                .font(.title)
-                .foregroundColor(.black)
-                .frame(width: 44, height: 44)
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title)
-                    .font(.headline)
-                    .foregroundColor(.black)
-
-                Text(description)
-                    .font(.subheadline)
-                    .foregroundColor(.gray)
-            }
-
-            Spacer()
-        }
-    }
-}
-
 // MARK: - Previews
 
 #Preview("Onboarding") {
@@ -302,6 +235,3 @@ struct GamificationPage: View {
     HowItWorksPage()
 }
 
-#Preview("Gamification Page") {
-    GamificationPage()
-}

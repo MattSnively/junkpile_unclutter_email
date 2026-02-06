@@ -115,6 +115,44 @@ final class GamificationViewModel: ObservableObject {
         return gamificationService?.isAchievementUnlocked(achievement) ?? false
     }
 
+    // MARK: - Achievement Progress
+
+    /// Returns the progress fraction (0.0–1.0) toward unlocking a specific achievement.
+    /// For already-unlocked achievements, returns 1.0.
+    /// For session-behavior achievements without a numeric threshold, returns nil.
+    /// - Parameter achievement: The achievement to check progress for
+    /// - Returns: Progress fraction, or nil if progress is not trackable
+    func progress(for achievement: Achievement) -> Double? {
+        // Already unlocked = full progress
+        if isUnlocked(achievement) { return 1.0 }
+
+        // Need both a threshold and a metric to calculate progress
+        guard let threshold = achievement.threshold,
+              let metric = achievement.progressMetric else {
+            return nil
+        }
+
+        // Look up the user's current value for this metric
+        let currentValue: Int
+        switch metric {
+        case .totalDecisions:
+            currentValue = (profile?.lifetimeUnsubscribes ?? 0) + (profile?.lifetimeKeeps ?? 0)
+        case .sessions:
+            currentValue = profile?.totalSessionsCompleted ?? 0
+        case .unsubscribes:
+            currentValue = profile?.lifetimeUnsubscribes ?? 0
+        case .streak:
+            // Use longest streak (the max they've ever hit) since current
+            // streak resets daily and would be misleading for progress
+            currentValue = profile?.longestStreak ?? 0
+        case .level:
+            currentValue = profile?.currentLevel ?? 1
+        }
+
+        // Clamp to 0.0–1.0
+        return min(1.0, Double(currentValue) / Double(threshold))
+    }
+
     // MARK: - Computed Properties
 
     /// Current level from profile

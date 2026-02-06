@@ -71,6 +71,26 @@ final class DailyActivity {
         countsTowardStreak = true
     }
 
+    /// Reverses a decision that was undone by the user.
+    /// Decrements the counts and rewards that were added by recordDecision().
+    /// Uses max(0, ...) to prevent negative values from edge cases.
+    /// - Parameter decision: The Decision being undone
+    func reverseDecision(_ decision: Decision) {
+        emailsProcessed = max(0, emailsProcessed - 1)
+        pointsEarned -= decision.pointsAwarded
+        xpEarned -= decision.xpAwarded
+
+        switch decision.action {
+        case .unsubscribe:
+            unsubscribeCount = max(0, unsubscribeCount - 1)
+        case .keep:
+            keepCount = max(0, keepCount - 1)
+        }
+
+        // Note: We do NOT reset countsTowardStreak here even if emailsProcessed
+        // reaches 0. Streaks are daily-level and the user did interact today.
+    }
+
     /// Increments the session count for this day.
     func recordSessionStart() {
         sessionsCount += 1

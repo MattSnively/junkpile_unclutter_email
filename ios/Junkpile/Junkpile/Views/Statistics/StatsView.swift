@@ -13,6 +13,9 @@ struct StatsView: View {
 
     @StateObject private var viewModel = StatsViewModel()
 
+    /// Session selected for deletion via context menu
+    @State private var sessionToDelete: SessionSummary?
+
     // MARK: - Body
 
     var body: some View {
@@ -42,6 +45,27 @@ struct StatsView: View {
             .refreshable {
                 viewModel.refresh()
             }
+            // Confirmation dialog for session deletion — triggered from session row context menu
+            .confirmationDialog(
+                "Delete Session",
+                isPresented: Binding(
+                    get: { sessionToDelete != nil },
+                    set: { if !$0 { sessionToDelete = nil } }
+                ),
+                titleVisibility: .visible
+            ) {
+                if let session = sessionToDelete {
+                    Button("Delete Session", role: .destructive) {
+                        viewModel.deleteSession(id: session.id)
+                        sessionToDelete = nil
+                    }
+                    Button("Cancel", role: .cancel) {
+                        sessionToDelete = nil
+                    }
+                }
+            } message: {
+                Text("This will delete the session and adjust your lifetime stats. Streaks will not be affected. This action cannot be undone.")
+            }
         }
     }
 
@@ -58,14 +82,14 @@ struct StatsView: View {
             HStack(spacing: 16) {
                 // Total emails
                 statItem(
-                    value: "\(viewModel.totalEmails)",
+                    value: "\(viewModel.totalEmails.localized)",
                     label: "Emails Processed",
                     icon: "envelope.fill"
                 )
 
                 // Sessions
                 statItem(
-                    value: "\(viewModel.totalSessions)",
+                    value: "\(viewModel.totalSessions.localized)",
                     label: "Sessions",
                     icon: "repeat"
                 )
@@ -74,7 +98,7 @@ struct StatsView: View {
             HStack(spacing: 16) {
                 // Unsubscribed
                 statItem(
-                    value: "\(viewModel.totalUnsubscribes)",
+                    value: "\(viewModel.totalUnsubscribes.localized)",
                     label: "Unsubscribed",
                     icon: "xmark.circle.fill",
                     color: .red
@@ -82,7 +106,7 @@ struct StatsView: View {
 
                 // Kept
                 statItem(
-                    value: "\(viewModel.totalKeeps)",
+                    value: "\(viewModel.totalKeeps.localized)",
                     label: "Kept",
                     icon: "checkmark.circle.fill",
                     color: .green
@@ -95,7 +119,7 @@ struct StatsView: View {
         .shadow(color: .black.opacity(0.05), radius: 5, x: 0, y: 2)
     }
 
-    /// Single stat item
+    /// Single stat item — combined into one VoiceOver element
     private func statItem(
         value: String,
         label: String,
@@ -112,6 +136,7 @@ struct StatsView: View {
                 Text(value)
                     .font(.title3.bold())
                     .foregroundColor(.black)
+                    .minimumScaleFactor(0.7)
 
                 Text(label)
                     .font(.caption)
@@ -123,6 +148,8 @@ struct StatsView: View {
         .padding(12)
         .background(Color.gray.opacity(0.05))
         .cornerRadius(12)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(value) \(label)")
     }
 
     /// Weekly activity chart card
@@ -133,14 +160,21 @@ struct StatsView: View {
                     .font(.headline)
                     .foregroundColor(.black)
 
+                // Week-over-week trend indicator — shows the percentage change
+                // compared to the previous 7 days. Only displayed when there
+                // is previous week data to compare against.
+                if let change = viewModel.weekOverWeekChange {
+                    trendBadge(change: change)
+                }
+
                 Spacer()
 
-                Text("\(viewModel.weeklyTotal) emails")
+                Text("\(viewModel.weeklyTotal.localized) emails")
                     .font(.subheadline)
                     .foregroundColor(.gray)
             }
 
-            // Bar chart
+            // Bar chart — provide summary for VoiceOver since bar details are hard to navigate
             if !viewModel.weeklyData.isEmpty {
                 Chart(viewModel.weeklyData) { data in
                     BarMark(
@@ -159,13 +193,16 @@ struct StatsView: View {
                 .chartYAxis {
                     AxisMarks(position: .leading)
                 }
+                .accessibilityLabel("Weekly activity chart")
+                .accessibilityValue("\(viewModel.weeklyTotal) emails processed this week")
 
-                // Legend
+                // Legend — decorative when VoiceOver is active (chart label covers it)
                 HStack(spacing: 24) {
                     legendItem(color: .red.opacity(0.8), label: "Unsubscribed")
                     legendItem(color: .green.opacity(0.8), label: "Kept")
                 }
                 .frame(maxWidth: .infinity)
+                .accessibilityHidden(true)
             } else {
                 // Empty state
                 VStack(spacing: 8) {
@@ -185,6 +222,29 @@ struct StatsView: View {
         .background(Color.white)
         .cornerRadius(16)
         .shadow(color: .black.opacity(0.05), radius: 5, x: 0, y: 2)
+    }
+
+    /// Compact badge showing a week-over-week percentage change.
+    /// Green with up arrow for positive, red with down arrow for negative,
+    /// gray with dash for flat (within ±0.5%).
+    private func trendBadge(change: Double) -> some View {
+        let isPositive = change > 0.5
+        let isNegative = change < -0.5
+        let icon = isPositive ? "arrow.up.right" : (isNegative ? "arrow.down.right" : "minus")
+        let color: Color = isPositive ? .green : (isNegative ? .red : .gray)
+
+        return HStack(spacing: 2) {
+            Image(systemName: icon)
+                .font(.caption2)
+            Text("\(Int(abs(change)))%")
+                .font(.caption2.bold())
+        }
+        .foregroundColor(color)
+        .padding(.horizontal, 6)
+        .padding(.vertical, 3)
+        .background(color.opacity(0.1))
+        .cornerRadius(6)
+        .accessibilityLabel("\(Int(abs(change))) percent \(isPositive ? "increase" : (isNegative ? "decrease" : "change")) from last week")
     }
 
     /// Legend item for charts
@@ -209,7 +269,7 @@ struct StatsView: View {
 
             if viewModel.totalEmails > 0 {
                 HStack(spacing: 24) {
-                    // Donut chart
+                    // Donut chart — provide accessible summary
                     ZStack {
                         Circle()
                             .stroke(Color.green.opacity(0.3), lineWidth: 20)
@@ -231,6 +291,8 @@ struct StatsView: View {
                                 .foregroundColor(.gray)
                         }
                     }
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel("Unsubscribe rate \(Int(viewModel.unsubscribeRate)) percent")
 
                     // Stats breakdown
                     VStack(alignment: .leading, spacing: 12) {
@@ -283,7 +345,7 @@ struct StatsView: View {
 
             Spacer()
 
-            Text("\(value)")
+            Text("\(value.localized)")
                 .font(.subheadline.bold())
                 .foregroundColor(.black)
 
@@ -329,7 +391,7 @@ struct StatsView: View {
         .shadow(color: .black.opacity(0.05), radius: 5, x: 0, y: 2)
     }
 
-    /// Single session row
+    /// Single session row — combined as one VoiceOver element
     private func sessionRow(_ session: SessionSummary) -> some View {
         HStack {
             // Date
@@ -351,7 +413,7 @@ struct StatsView: View {
                     Image(systemName: "xmark.circle.fill")
                         .foregroundColor(.red)
                         .font(.caption)
-                    Text("\(session.unsubscribeCount)")
+                    Text("\(session.unsubscribeCount.localized)")
                         .font(.subheadline)
                         .foregroundColor(.black)
                 }
@@ -360,7 +422,7 @@ struct StatsView: View {
                     Image(systemName: "checkmark.circle.fill")
                         .foregroundColor(.green)
                         .font(.caption)
-                    Text("\(session.keepCount)")
+                    Text("\(session.keepCount.localized)")
                         .font(.subheadline)
                         .foregroundColor(.black)
                 }
@@ -373,6 +435,17 @@ struct StatsView: View {
             }
         }
         .padding(.vertical, 4)
+        // Long-press context menu for session deletion (ScrollView/VStack doesn't
+        // support .onDelete, so we use contextMenu as the delete affordance)
+        .contextMenu {
+            Button(role: .destructive) {
+                sessionToDelete = session
+            } label: {
+                Label("Delete Session", systemImage: "trash")
+            }
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Session on \(session.date.formatted(date: .abbreviated, time: .shortened)). \(session.unsubscribeCount.localized) unsubscribed, \(session.keepCount.localized) kept\(session.isCompleted ? ". Completed" : "")")
     }
 }
 

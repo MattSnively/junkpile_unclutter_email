@@ -204,6 +204,91 @@ enum APIError: Error, LocalizedError {
     }
 }
 
+// MARK: - User-Facing Error
+
+/// Maps raw API errors to friendly, actionable messages for the UI.
+/// Each error type gets a human-readable title, guidance message,
+/// SF Symbol icon, and a context-appropriate action label.
+struct UserFacingError: Equatable {
+    /// Short headline displayed prominently (e.g. "No Connection")
+    let title: String
+
+    /// Guidance text explaining what happened and what the user can do
+    let message: String
+
+    /// SF Symbol name for the error illustration
+    let iconName: String
+
+    /// Label for the primary action button (e.g. "Try Again", "Sign In")
+    let actionLabel: String
+
+    /// Converts a typed APIError into a user-friendly error representation.
+    /// Each case maps to a specific title/message/icon/action combo.
+    static func from(_ error: APIError) -> UserFacingError {
+        switch error {
+        case .networkError:
+            return UserFacingError(
+                title: "No Connection",
+                message: "Check your Wi-Fi or cellular connection and try again.",
+                iconName: "wifi.slash",
+                actionLabel: "Try Again"
+            )
+        case .authenticationRequired:
+            return UserFacingError(
+                title: "Sign-In Required",
+                message: "Please sign in to access your emails.",
+                iconName: "person.crop.circle.badge.exclamationmark",
+                actionLabel: "Sign In"
+            )
+        case .tokenExpired:
+            return UserFacingError(
+                title: "Session Expired",
+                message: "Your session has expired. Please sign in again.",
+                iconName: "clock.badge.exclamationmark",
+                actionLabel: "Sign In"
+            )
+        case .invalidResponse:
+            return UserFacingError(
+                title: "Something Went Wrong",
+                message: "We got an unexpected response. Please try again.",
+                iconName: "exclamationmark.bubble",
+                actionLabel: "Try Again"
+            )
+        case .serverError:
+            return UserFacingError(
+                title: "Server Trouble",
+                message: "Our servers are having a moment. Please try again shortly.",
+                iconName: "server.rack",
+                actionLabel: "Try Again"
+            )
+        case .noEmailsFound:
+            return UserFacingError(
+                title: "Inbox Already Clean",
+                message: "No emails with unsubscribe options found. Nice work!",
+                iconName: "sparkles",
+                actionLabel: "Go Home"
+            )
+        case .gmailNotConfigured:
+            return UserFacingError(
+                title: "Gmail Not Connected",
+                message: "Gmail integration needs to be set up before you can start.",
+                iconName: "envelope.badge.shield.half.filled",
+                actionLabel: "Go to Settings"
+            )
+        }
+    }
+
+    /// Fallback error for unexpected/untyped errors
+    static func generic() -> UserFacingError {
+        return UserFacingError(
+            title: "Something Went Wrong",
+            message: "An unexpected error occurred. Please try again.",
+            iconName: "exclamationmark.triangle",
+            actionLabel: "Try Again"
+        )
+    }
+}
+
 // MARK: - User Info
 
 /// User information from Google OAuth

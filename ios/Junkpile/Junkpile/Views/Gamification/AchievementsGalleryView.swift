@@ -34,14 +34,15 @@ struct AchievementsGalleryView: View {
         .sheet(item: $selectedAchievement) { achievement in
             AchievementDetailView(
                 achievement: achievement,
-                isUnlocked: gamificationViewModel.isUnlocked(achievement)
+                isUnlocked: gamificationViewModel.isUnlocked(achievement),
+                progress: gamificationViewModel.progress(for: achievement)
             )
         }
     }
 
     // MARK: - Components
 
-    /// Progress summary at the top
+    /// Progress summary at the top — combined as one VoiceOver element
     private var progressSummary: some View {
         HStack(spacing: 24) {
             // Unlocked count
@@ -84,6 +85,8 @@ struct AchievementsGalleryView: View {
             }
         }
         .padding(.vertical, 16)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(gamificationViewModel.unlockedCount) of \(gamificationViewModel.totalAchievements) achievements unlocked. \(Int(gamificationViewModel.achievementProgress * 100)) percent complete.")
     }
 
     /// Section for a single achievement category
@@ -108,7 +111,7 @@ struct AchievementsGalleryView: View {
         }
     }
 
-    /// Single achievement cell in the grid
+    /// Single achievement cell in the grid — labeled with unlock status for VoiceOver
     private func achievementCell(_ achievement: Achievement) -> some View {
         let isUnlocked = gamificationViewModel.isUnlocked(achievement)
 
@@ -130,6 +133,7 @@ struct AchievementsGalleryView: View {
                     .foregroundColor(isUnlocked ? .black : .gray)
                     .lineLimit(2)
                     .multilineTextAlignment(.center)
+                    .minimumScaleFactor(0.7)
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 12)
@@ -141,16 +145,23 @@ struct AchievementsGalleryView: View {
             )
             .shadow(color: isUnlocked ? .black.opacity(0.05) : .clear, radius: 5, x: 0, y: 2)
         }
+        .accessibilityLabel("\(achievement.title). \(isUnlocked ? "Unlocked" : "Locked")")
+        .accessibilityHint("Double tap to view details")
     }
 }
 
 // MARK: - Achievement Detail View
 
-/// Detail view for a single achievement shown as a sheet
+/// Detail view for a single achievement shown as a sheet.
+/// Shows a progress bar for locked achievements that have a numeric threshold.
 struct AchievementDetailView: View {
 
     let achievement: Achievement
     let isUnlocked: Bool
+
+    /// Progress fraction (0.0–1.0) toward unlocking. Nil for session-behavior
+    /// achievements where a progress bar doesn't apply.
+    let progress: Double?
 
     @Environment(\.dismiss) var dismiss
 
@@ -202,6 +213,33 @@ struct AchievementDetailView: View {
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 32)
 
+            // Progress bar for locked achievements with a trackable threshold
+            if !isUnlocked, let progress = progress, let threshold = achievement.threshold {
+                VStack(spacing: 6) {
+                    // Progress bar
+                    GeometryReader { geometry in
+                        ZStack(alignment: .leading) {
+                            RoundedRectangle(cornerRadius: 4)
+                                .fill(Color.gray.opacity(0.2))
+
+                            RoundedRectangle(cornerRadius: 4)
+                                .fill(Color.black)
+                                .frame(width: geometry.size.width * progress)
+                        }
+                    }
+                    .frame(height: 8)
+                    .accessibilityHidden(true)
+
+                    // Progress label — e.g., "3 / 10"
+                    Text("\(Int(progress * Double(threshold))) / \(threshold)")
+                        .font(.caption)
+                        .foregroundColor(.gray)
+                }
+                .padding(.horizontal, 32)
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel("\(Int(progress * 100)) percent progress toward \(achievement.title)")
+            }
+
             // Bonus points
             VStack(spacing: 4) {
                 Text("+\(achievement.pointsBonus)")
@@ -240,7 +278,8 @@ struct AchievementDetailView: View {
 
 // MARK: - Achievement Unlock Animation View
 
-/// Animated overlay shown when an achievement is unlocked
+/// Animated overlay shown when an achievement is unlocked.
+/// Respects Reduce Motion — uses simple opacity fade instead of spring scale.
 struct AchievementUnlockView: View {
 
     let achievement: Achievement
@@ -248,6 +287,9 @@ struct AchievementUnlockView: View {
 
     @State private var showContent = false
     @State private var showConfetti = false
+
+    /// Respects the user's Reduce Motion preference
+    @Environment(\.accessibilityReduceMotion) var reduceMotion
 
     var body: some View {
         ZStack {
@@ -257,20 +299,24 @@ struct AchievementUnlockView: View {
                 .onTapGesture {
                     onDismiss()
                 }
+                .accessibilityAddTraits(.isButton)
+                .accessibilityLabel("Dismiss achievement")
 
             // Content
             VStack(spacing: 24) {
-                // Badge animation
+                // Badge animation — scale effect only when Reduce Motion is off
                 ZStack {
                     Circle()
                         .fill(Color.white)
                         .frame(width: 120, height: 120)
-                        .scaleEffect(showContent ? 1 : 0)
+                        .scaleEffect(reduceMotion ? 1 : (showContent ? 1 : 0))
+                        .opacity(showContent ? 1 : 0)
 
                     Image(systemName: achievement.iconName)
                         .font(.system(size: 50))
                         .foregroundColor(.black)
-                        .scaleEffect(showContent ? 1 : 0)
+                        .scaleEffect(reduceMotion ? 1 : (showContent ? 1 : 0))
+                        .opacity(showContent ? 1 : 0)
                 }
 
                 // Title
@@ -289,18 +335,47 @@ struct AchievementUnlockView: View {
                     .font(.title3.bold())
                     .foregroundColor(.yellow)
                     .opacity(showContent ? 1 : 0)
+
+                // Explicit dismiss button — lets user acknowledge at their own pace
+                Button {
+                    onDismiss()
+                } label: {
+                    Text("Awesome!")
+                        .font(.headline)
+                        .foregroundColor(.black)
+                        .padding(.horizontal, 32)
+                        .padding(.vertical, 12)
+                        .background(Color.white)
+                        .cornerRadius(24)
+                }
+                .opacity(showContent ? 1 : 0)
+                .accessibilityLabel("Dismiss achievement")
             }
-            .animation(.spring(response: 0.6, dampingFraction: 0.7), value: showContent)
+            // Use simple opacity when Reduce Motion is on, spring when off
+            .animation(reduceMotion
+                ? .easeInOut(duration: 0.3)
+                : .spring(response: 0.6, dampingFraction: 0.7),
+                value: showContent
+            )
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("Achievement unlocked: \(achievement.title). Plus \(achievement.pointsBonus) bonus points. Double tap to dismiss.")
+            .accessibilityAddTraits(.isButton)
         }
         .onAppear {
             withAnimation {
                 showContent = true
             }
 
-            // Auto dismiss after 3 seconds
-            DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
-                onDismiss()
-            }
+            // Celebratory haptic for achievement unlock
+            let generator = UINotificationFeedbackGenerator()
+            generator.notificationOccurred(.success)
+        }
+        // 8-second safety-net auto-dismiss — cancellable if user taps "Awesome!"
+        // or the background first. Uses structured concurrency instead of
+        // DispatchQueue so the timer is automatically cancelled on view removal.
+        .task {
+            try? await Task.sleep(for: .seconds(8))
+            onDismiss()
         }
     }
 }
@@ -316,11 +391,15 @@ struct AchievementUnlockView: View {
 }
 
 #Preview("Achievement Detail - Unlocked") {
-    AchievementDetailView(achievement: .emailAssassin, isUnlocked: true)
+    AchievementDetailView(achievement: .emailAssassin, isUnlocked: true, progress: 1.0)
 }
 
 #Preview("Achievement Detail - Locked") {
-    AchievementDetailView(achievement: .inboxGrandmaster, isUnlocked: false)
+    AchievementDetailView(achievement: .inboxGrandmaster, isUnlocked: false, progress: 0.35)
+}
+
+#Preview("Achievement Detail - Locked No Progress") {
+    AchievementDetailView(achievement: .noMercy, isUnlocked: false, progress: nil)
 }
 
 #Preview("Achievement Unlock Animation") {

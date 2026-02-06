@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 
 /// StreakView displays the user's current and longest streaks with visual indicators.
 struct StreakView: View {
@@ -6,6 +7,18 @@ struct StreakView: View {
     // MARK: - Environment
 
     @EnvironmentObject var gamificationViewModel: GamificationViewModel
+
+    /// Model context for querying actual DailyActivity records
+    @Environment(\.modelContext) private var modelContext
+
+    /// Respects the user's Reduce Motion accessibility setting.
+    /// When enabled, disables the flame pulse animation.
+    @Environment(\.accessibilityReduceMotion) var reduceMotion
+
+    // MARK: - State
+
+    /// Drives the flame icon pulse animation when the user has an active streak.
+    @State private var isPulsing = false
 
     // MARK: - Body
 
@@ -30,10 +43,11 @@ struct StreakView: View {
 
     // MARK: - Components
 
-    /// Large current streak display
+    /// Large current streak display — combined as one VoiceOver element
     private var currentStreakCard: some View {
         VStack(spacing: 16) {
-            // Flame icon with animation
+            // Flame icon with pulse animation — pulses when streak is active,
+            // static when streak is zero or Reduce Motion is enabled
             ZStack {
                 Circle()
                     .fill(streakColor.opacity(0.1))
@@ -43,10 +57,20 @@ struct StreakView: View {
                     .font(.system(size: 50))
                     .foregroundColor(streakColor)
             }
+            .scaleEffect(isPulsing ? 1.08 : 1.0)
+            .onAppear {
+                // Only animate when the user has an active streak and hasn't
+                // enabled Reduce Motion — prevents distracting motion
+                if gamificationViewModel.currentStreak > 0 && !reduceMotion {
+                    withAnimation(.easeInOut(duration: 1.2).repeatForever(autoreverses: true)) {
+                        isPulsing = true
+                    }
+                }
+            }
 
             // Streak count
             HStack(alignment: .lastTextBaseline, spacing: 4) {
-                Text("\(gamificationViewModel.currentStreak)")
+                Text("\(gamificationViewModel.currentStreak.localized)")
                     .font(.system(size: 60, weight: .bold, design: .rounded))
                     .foregroundColor(.black)
 
@@ -66,6 +90,8 @@ struct StreakView: View {
         .background(Color.white)
         .cornerRadius(20)
         .shadow(color: .black.opacity(0.05), radius: 10, x: 0, y: 5)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Current streak: \(gamificationViewModel.currentStreak) \(gamificationViewModel.currentStreak == 1 ? "day" : "days"). \(streakStatusMessage)")
     }
 
     /// Weekly activity visualization (last 7 days)
@@ -87,7 +113,7 @@ struct StreakView: View {
         .shadow(color: .black.opacity(0.05), radius: 5, x: 0, y: 2)
     }
 
-    /// Single day circle in the weekly view
+    /// Single day circle in the weekly view — each day readable by VoiceOver
     private func dayCircle(for dayOffset: Int) -> some View {
         let calendar = Calendar.current
         let date = calendar.date(byAdding: .day, value: -(6 - dayOffset), to: Date()) ?? Date()
@@ -120,9 +146,11 @@ struct StreakView: View {
                 .fontWeight(isToday ? .bold : .regular)
         }
         .frame(maxWidth: .infinity)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(dayName)\(isToday ? ", today" : ""). \(isActive ? "Active" : "Inactive")")
     }
 
-    /// Row showing streak statistics
+    /// Row showing streak statistics — each stat is a combined VoiceOver element
     private var streakStatsRow: some View {
         HStack(spacing: 24) {
             // Longest streak
@@ -131,7 +159,7 @@ struct StreakView: View {
                     .font(.title2)
                     .foregroundColor(.yellow)
 
-                Text("\(gamificationViewModel.longestStreak)")
+                Text("\(gamificationViewModel.longestStreak.localized)")
                     .font(.title2.bold())
                     .foregroundColor(.black)
 
@@ -143,6 +171,8 @@ struct StreakView: View {
             .padding(.vertical, 20)
             .background(Color.white)
             .cornerRadius(12)
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("Longest streak: \(gamificationViewModel.longestStreak) days")
 
             // Total active days
             VStack(spacing: 8) {
@@ -150,7 +180,7 @@ struct StreakView: View {
                     .font(.title2)
                     .foregroundColor(.green)
 
-                Text("\(gamificationViewModel.totalSessions)")
+                Text("\(gamificationViewModel.totalSessions.localized)")
                     .font(.title2.bold())
                     .foregroundColor(.black)
 
@@ -162,6 +192,8 @@ struct StreakView: View {
             .padding(.vertical, 20)
             .background(Color.white)
             .cornerRadius(12)
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("Total sessions: \(gamificationViewModel.totalSessions)")
         }
         .shadow(color: .black.opacity(0.05), radius: 5, x: 0, y: 2)
     }
@@ -199,17 +231,16 @@ struct StreakView: View {
         }
     }
 
-    /// Checks if a date had activity (simplified - would need DailyActivity data)
+    /// Checks if a date had actual activity by querying the DailyActivity SwiftData model.
+    /// Replaces the previous streak-based heuristic that showed false positives for
+    /// non-consecutive days within the streak count.
     private func isDateActive(_ date: Date) -> Bool {
-        // For now, check if it's today and we have activity
-        let calendar = Calendar.current
-        if calendar.isDateInToday(date) {
-            return gamificationViewModel.hasActiveStreakToday
-        }
-
-        // Check if within current streak
-        let daysAgo = calendar.dateComponents([.day], from: date, to: Date()).day ?? 0
-        return daysAgo < gamificationViewModel.currentStreak
+        let startOfDay = Calendar.current.startOfDay(for: date)
+        let descriptor = FetchDescriptor<DailyActivity>(
+            predicate: #Predicate { $0.date == startOfDay && $0.countsTowardStreak == true }
+        )
+        let results = (try? modelContext.fetch(descriptor)) ?? []
+        return !results.isEmpty
     }
 }
 
@@ -226,7 +257,7 @@ struct StreakBadge: View {
             Image(systemName: "flame.fill")
                 .foregroundColor(isActive ? .orange : .gray)
 
-            Text("\(streakCount)")
+            Text("\(streakCount.localized)")
                 .font(.subheadline.bold())
                 .foregroundColor(isActive ? .black : .gray)
         }
@@ -234,6 +265,8 @@ struct StreakBadge: View {
         .padding(.vertical, 6)
         .background(isActive ? Color.orange.opacity(0.1) : Color.gray.opacity(0.1))
         .cornerRadius(20)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(streakCount) day streak\(isActive ? ", active" : "")")
     }
 }
 

@@ -16,30 +16,43 @@ struct HomeView: View {
     @State private var showingAchievementUnlock = false
     @State private var pendingAchievement: Achievement?
 
+    /// Drives the flame icon pulse animation on the streak card
+    @State private var isStreakPulsing = false
+
+    /// Respects the user's Reduce Motion accessibility setting
+    @Environment(\.accessibilityReduceMotion) var reduceMotion
+
     // MARK: - Body
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 20) {
-                    // Welcome header
-                    welcomeHeader
+                    if gamificationViewModel.totalSessions == 0 {
+                        // Empty state — user hasn't completed any sessions yet.
+                        // Show a welcoming hero card instead of empty stats.
+                        welcomeHeader
+                        firstSessionHeroCard
+                    } else {
+                        // Normal dashboard with stats, streak, and level
+                        welcomeHeader
 
-                    // Streak card
-                    streakCard
+                        // Streak card
+                        streakCard
 
-                    // Level progress card
-                    levelProgressCard
+                        // Level progress card
+                        levelProgressCard
 
-                    // Quick stats row
-                    quickStatsRow
+                        // Quick stats row
+                        quickStatsRow
 
-                    // Quick action button
-                    quickActionCard
+                        // Quick action button
+                        quickActionCard
 
-                    // Recent achievements
-                    if !gamificationViewModel.unlockedAchievements.isEmpty {
-                        recentAchievementsCard
+                        // Recent achievements
+                        if !gamificationViewModel.unlockedAchievements.isEmpty {
+                            recentAchievementsCard
+                        }
                     }
                 }
                 .padding()
@@ -54,6 +67,8 @@ struct HomeView: View {
                             .font(.title2)
                             .foregroundColor(.black)
                     }
+                    .accessibilityLabel("Profile")
+                    .accessibilityHint("View your profile and statistics")
                 }
             }
             .onAppear {
@@ -91,7 +106,7 @@ struct HomeView: View {
 
             Spacer()
 
-            // Points badge
+            // Points badge — combined for VoiceOver
             HStack(spacing: 4) {
                 Image(systemName: "star.fill")
                     .foregroundColor(.yellow)
@@ -104,6 +119,8 @@ struct HomeView: View {
             .padding(.vertical, 8)
             .background(Color.yellow.opacity(0.1))
             .cornerRadius(20)
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("\(gamificationViewModel.formattedPoints) points")
         }
     }
 
@@ -111,7 +128,8 @@ struct HomeView: View {
     private var streakCard: some View {
         NavigationLink(destination: StreakView()) {
             HStack(spacing: 16) {
-                // Flame icon
+                // Flame icon — pulses when streak is active,
+                // static when streak is zero or Reduce Motion is enabled
                 ZStack {
                     Circle()
                         .fill(gamificationViewModel.currentStreak > 0 ? Color.orange.opacity(0.1) : Color.gray.opacity(0.1))
@@ -120,6 +138,14 @@ struct HomeView: View {
                     Image(systemName: "flame.fill")
                         .font(.title)
                         .foregroundColor(gamificationViewModel.currentStreak > 0 ? .orange : .gray)
+                }
+                .scaleEffect(isStreakPulsing ? 1.08 : 1.0)
+                .onAppear {
+                    if gamificationViewModel.currentStreak > 0 && !reduceMotion {
+                        withAnimation(.easeInOut(duration: 1.2).repeatForever(autoreverses: true)) {
+                            isStreakPulsing = true
+                        }
+                    }
                 }
 
                 // Streak info
@@ -137,12 +163,16 @@ struct HomeView: View {
 
                 Image(systemName: "chevron.right")
                     .foregroundColor(.gray)
+                    .accessibilityHidden(true)
             }
             .padding(16)
             .background(Color.white)
             .cornerRadius(16)
             .shadow(color: .black.opacity(0.05), radius: 5, x: 0, y: 2)
         }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(gamificationViewModel.streakStatus). \(gamificationViewModel.hasActiveStreakToday ? "Streak active today" : "Swipe to keep your streak")")
+        .accessibilityHint("Double tap to view streak details")
     }
 
     /// Level progress card
@@ -156,13 +186,13 @@ struct HomeView: View {
                             .fill(Color.black)
                             .frame(width: 40, height: 40)
 
-                        Text("\(gamificationViewModel.currentLevel)")
+                        Text("\(gamificationViewModel.currentLevel.localized)")
                             .font(.headline.bold())
                             .foregroundColor(.white)
                     }
 
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Level \(gamificationViewModel.currentLevel)")
+                        Text("Level \(gamificationViewModel.currentLevel.localized)")
                             .font(.headline)
                             .foregroundColor(.black)
 
@@ -193,9 +223,10 @@ struct HomeView: View {
                     }
                 }
                 .frame(height: 8)
+                .accessibilityHidden(true)
 
                 HStack {
-                    Text("\(gamificationViewModel.xpToNextLevel) XP to next level")
+                    Text("\(gamificationViewModel.xpToNextLevel.localized) XP to next level")
                         .font(.caption)
                         .foregroundColor(.gray)
 
@@ -207,6 +238,9 @@ struct HomeView: View {
         .background(Color.white)
         .cornerRadius(16)
         .shadow(color: .black.opacity(0.05), radius: 5, x: 0, y: 2)
+        // Combine entire card into one VoiceOver element
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Level \(gamificationViewModel.currentLevel), \(gamificationViewModel.levelTitle). \(gamificationViewModel.formattedXP). \(gamificationViewModel.xpToNextLevel) XP to next level. \(Int(gamificationViewModel.levelProgress * 100)) percent progress.")
     }
 
     /// Quick stats row
@@ -214,7 +248,7 @@ struct HomeView: View {
         HStack(spacing: 12) {
             // Unsubscribed
             statBox(
-                value: "\(gamificationViewModel.lifetimeUnsubscribes)",
+                value: "\(gamificationViewModel.lifetimeUnsubscribes.localized)",
                 label: "Unsubscribed",
                 icon: "xmark.circle.fill",
                 color: .red
@@ -222,7 +256,7 @@ struct HomeView: View {
 
             // Kept
             statBox(
-                value: "\(gamificationViewModel.lifetimeKeeps)",
+                value: "\(gamificationViewModel.lifetimeKeeps.localized)",
                 label: "Kept",
                 icon: "checkmark.circle.fill",
                 color: .green
@@ -230,7 +264,7 @@ struct HomeView: View {
 
             // Sessions
             statBox(
-                value: "\(gamificationViewModel.totalSessions)",
+                value: "\(gamificationViewModel.totalSessions.localized)",
                 label: "Sessions",
                 icon: "repeat",
                 color: .blue
@@ -238,7 +272,7 @@ struct HomeView: View {
         }
     }
 
-    /// Single stat box
+    /// Single stat box — combined as one VoiceOver element (e.g., "42 Unsubscribed")
     private func statBox(value: String, label: String, icon: String, color: Color) -> some View {
         VStack(spacing: 8) {
             Image(systemName: icon)
@@ -248,6 +282,7 @@ struct HomeView: View {
             Text(value)
                 .font(.title3.bold())
                 .foregroundColor(.black)
+                .minimumScaleFactor(0.7)
 
             Text(label)
                 .font(.caption)
@@ -258,6 +293,66 @@ struct HomeView: View {
         .background(Color.white)
         .cornerRadius(12)
         .shadow(color: .black.opacity(0.05), radius: 5, x: 0, y: 2)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(value) \(label)")
+    }
+
+    /// Hero card shown when the user has zero sessions.
+    /// Provides a welcoming introduction and encourages the first swipe session.
+    private var firstSessionHeroCard: some View {
+        VStack(spacing: 20) {
+            // Large app icon / illustration
+            ZStack {
+                Circle()
+                    .fill(Color.black.opacity(0.05))
+                    .frame(width: 120, height: 120)
+
+                Image(systemName: "hand.draw.fill")
+                    .font(.system(size: 50))
+                    .foregroundColor(.black)
+            }
+
+            // Headline
+            Text("Start Your First Session")
+                .font(.title2.bold())
+                .foregroundColor(.black)
+
+            // Description
+            Text("Swipe through your emails to unsubscribe from newsletters you no longer read. Earn points, level up, and build a streak!")
+                .font(.subheadline)
+                .foregroundColor(.gray)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 16)
+
+            // How it works
+            VStack(alignment: .leading, spacing: 12) {
+                howItWorksRow(icon: "arrow.right.circle.fill", color: .green, text: "Swipe right to keep")
+                howItWorksRow(icon: "arrow.left.circle.fill", color: .red, text: "Swipe left to unsubscribe")
+                howItWorksRow(icon: "star.fill", color: .yellow, text: "Earn points with every decision")
+            }
+            .padding(.vertical, 8)
+        }
+        .padding(32)
+        .frame(maxWidth: .infinity)
+        .background(Color.white)
+        .cornerRadius(20)
+        .shadow(color: .black.opacity(0.08), radius: 10, x: 0, y: 5)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Start your first session. Swipe right to keep emails, swipe left to unsubscribe. Earn points with every decision.")
+    }
+
+    /// Single row in the "how it works" section of the hero card
+    private func howItWorksRow(icon: String, color: Color, text: String) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: icon)
+                .font(.title3)
+                .foregroundColor(color)
+                .frame(width: 30)
+
+            Text(text)
+                .font(.subheadline)
+                .foregroundColor(.black)
+        }
     }
 
     /// Quick action card to start swiping
@@ -325,7 +420,7 @@ struct HomeView: View {
         .shadow(color: .black.opacity(0.05), radius: 5, x: 0, y: 2)
     }
 
-    /// Small achievement badge
+    /// Small achievement badge — combined for VoiceOver
     private func achievementBadge(_ achievement: Achievement) -> some View {
         VStack(spacing: 6) {
             Image(systemName: achievement.iconName)
@@ -339,8 +434,11 @@ struct HomeView: View {
                 .font(.caption2)
                 .foregroundColor(.gray)
                 .lineLimit(1)
+                .minimumScaleFactor(0.7)
         }
         .frame(width: 70)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Achievement: \(achievement.title)")
     }
 
     // MARK: - Methods
@@ -360,7 +458,7 @@ struct HomeView: View {
 
 #Preview("Home View") {
     let authVM = AuthViewModel()
-    authVM.isAuthenticated = true
+    authVM.authState = .authenticated
 
     return HomeView()
         .environmentObject(authVM)
