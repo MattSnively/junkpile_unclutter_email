@@ -165,6 +165,72 @@ enum Achievement: String, CaseIterable, Identifiable {
         }
     }
 
+    /// The numeric threshold required to unlock this achievement.
+    /// Returns nil for achievements that are session-behavior-based
+    /// (e.g., noMercy, loyalSubscriber) where a simple progress bar
+    /// doesn't make sense.
+    var threshold: Int? {
+        switch self {
+        // Getting Started
+        case .firstStep: return 1
+        case .gettingStarted: return 1
+        // Unsubscribe Milestones
+        case .inboxZeroHero: return 10
+        case .cleanSweep: return 25
+        case .emailAssassin: return 50
+        case .masterDeclutterer: return 100
+        case .inboxLegend: return 250
+        case .emailExterminator: return 500
+        // Session counts
+        case .dedicatedCleaner: return 5
+        case .sessionVeteran: return 25
+        case .sessionMaster: return 100
+        // Streak milestones
+        case .gettingIntoIt: return 3
+        case .weekWarrior: return 7
+        case .twoWeekTitan: return 14
+        case .monthlyMaster: return 30
+        // Level milestones
+        case .risingCleanser: return 5
+        case .expertOrganizer: return 10
+        case .eliteUnsubscriber: return 15
+        case .inboxGrandmaster: return 20
+        // Session-behavior achievements — no meaningful progress bar
+        case .noMercy, .loyalSubscriber: return nil
+        }
+    }
+
+    /// The category of metric this achievement tracks. Used by
+    /// GamificationViewModel.progress(for:) to look up the user's
+    /// current value and calculate progress toward the threshold.
+    enum ProgressMetric {
+        case totalDecisions
+        case sessions
+        case unsubscribes
+        case streak
+        case level
+    }
+
+    /// Which metric to read from the player profile to calculate progress.
+    /// Returns nil for achievements without a simple numeric progress path.
+    var progressMetric: ProgressMetric? {
+        switch self {
+        case .firstStep: return .totalDecisions
+        case .gettingStarted: return .sessions
+        case .inboxZeroHero, .cleanSweep, .emailAssassin,
+             .masterDeclutterer, .inboxLegend, .emailExterminator:
+            return .unsubscribes
+        case .dedicatedCleaner, .sessionVeteran, .sessionMaster:
+            return .sessions
+        case .gettingIntoIt, .weekWarrior, .twoWeekTitan, .monthlyMaster:
+            return .streak
+        case .risingCleanser, .expertOrganizer, .eliteUnsubscriber, .inboxGrandmaster:
+            return .level
+        case .noMercy, .loyalSubscriber:
+            return nil
+        }
+    }
+
     /// Points bonus awarded when achievement is unlocked
     var pointsBonus: Int {
         switch self {

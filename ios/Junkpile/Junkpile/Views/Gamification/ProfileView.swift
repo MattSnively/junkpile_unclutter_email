@@ -72,7 +72,7 @@ struct ProfileView: View {
                         .font(.caption)
                         .foregroundColor(.gray)
 
-                    Text("\(gamificationViewModel.currentLevel)")
+                    Text("\(gamificationViewModel.currentLevel.localized)")
                         .font(.system(size: 36, weight: .bold))
                         .foregroundColor(.black)
                 }
@@ -106,10 +106,11 @@ struct ProfileView: View {
                     }
                 }
                 .frame(height: 12)
+                .accessibilityHidden(true)
 
                 // XP to next level
                 HStack {
-                    Text("\(gamificationViewModel.xpToNextLevel) XP to Level \(gamificationViewModel.currentLevel + 1)")
+                    Text("\(gamificationViewModel.xpToNextLevel.localized) XP to Level \(gamificationViewModel.currentLevel + 1)")
                         .font(.caption)
                         .foregroundColor(.gray)
 
@@ -125,6 +126,9 @@ struct ProfileView: View {
         .background(Color.white)
         .cornerRadius(16)
         .shadow(color: .black.opacity(0.05), radius: 10, x: 0, y: 2)
+        // Combine into one VoiceOver element for level progress
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Level \(gamificationViewModel.currentLevel). \(gamificationViewModel.formattedXP) total XP. \(Int(gamificationViewModel.levelProgress * 100)) percent to level \(gamificationViewModel.currentLevel + 1). \(gamificationViewModel.xpToNextLevel) XP remaining.")
     }
 
     /// Grid of key statistics
@@ -142,28 +146,28 @@ struct ProfileView: View {
 
             statCard(
                 title: "Current Streak",
-                value: "\(gamificationViewModel.currentStreak) days",
+                value: "\(gamificationViewModel.currentStreak.localized) days",
                 icon: "flame.fill",
                 color: .orange
             )
 
             statCard(
                 title: "Unsubscribed",
-                value: "\(gamificationViewModel.lifetimeUnsubscribes)",
+                value: "\(gamificationViewModel.lifetimeUnsubscribes.localized)",
                 icon: "xmark.circle.fill",
                 color: .red
             )
 
             statCard(
                 title: "Kept",
-                value: "\(gamificationViewModel.lifetimeKeeps)",
+                value: "\(gamificationViewModel.lifetimeKeeps.localized)",
                 icon: "checkmark.circle.fill",
                 color: .green
             )
         }
     }
 
-    /// Single stat card component
+    /// Single stat card component — combined as one VoiceOver element
     private func statCard(title: String, value: String, icon: String, color: Color) -> some View {
         VStack(spacing: 12) {
             Image(systemName: icon)
@@ -173,6 +177,7 @@ struct ProfileView: View {
             Text(value)
                 .font(.headline)
                 .foregroundColor(.black)
+                .minimumScaleFactor(0.7)
 
             Text(title)
                 .font(.caption)
@@ -183,6 +188,8 @@ struct ProfileView: View {
         .background(Color.white)
         .cornerRadius(12)
         .shadow(color: .black.opacity(0.05), radius: 5, x: 0, y: 2)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(title): \(value)")
     }
 
     /// Quick preview of achievements with navigation link
@@ -209,7 +216,7 @@ struct ProfileView: View {
             // Achievement progress bar
             VStack(spacing: 8) {
                 HStack {
-                    Text("\(gamificationViewModel.unlockedCount) of \(gamificationViewModel.totalAchievements)")
+                    Text("\(gamificationViewModel.unlockedCount.localized) of \(gamificationViewModel.totalAchievements.localized)")
                         .font(.subheadline)
                         .foregroundColor(.black)
 
@@ -231,7 +238,10 @@ struct ProfileView: View {
                     }
                 }
                 .frame(height: 8)
+                .accessibilityHidden(true)
             }
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("\(gamificationViewModel.unlockedCount) of \(gamificationViewModel.totalAchievements) achievements unlocked. \(Int(gamificationViewModel.achievementProgress * 100)) percent.")
 
             // Recent achievements
             HStack(spacing: 12) {

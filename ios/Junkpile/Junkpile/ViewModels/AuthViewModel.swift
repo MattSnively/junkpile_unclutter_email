@@ -7,10 +7,28 @@ import AuthenticationServices
 @MainActor
 final class AuthViewModel: ObservableObject {
 
+    // MARK: - Auth State
+
+    /// Represents the three possible authentication states during app lifecycle.
+    /// .unknown is the transient state during credential validation at launch —
+    /// it prevents the onboarding flash by showing a splash screen instead.
+    enum AuthState: Equatable {
+        case unknown         // Checking stored credentials at launch
+        case authenticated   // User is signed in and validated
+        case unauthenticated // User needs to sign in
+    }
+
     // MARK: - Published State
 
-    /// Whether the user is currently authenticated
-    @Published var isAuthenticated = false
+    /// Current authentication state. Starts as .unknown to prevent
+    /// the onboarding view from flashing before validation completes.
+    @Published var authState: AuthState = .unknown
+
+    /// Convenience computed property for backward compatibility with views
+    /// that check a simple boolean.
+    var isAuthenticated: Bool {
+        authState == .authenticated
+    }
 
     /// Whether an authentication operation is in progress
     @Published var isLoading = false
@@ -71,7 +89,7 @@ final class AuthViewModel: ObservableObject {
             if success {
                 // Update state with stored credentials
                 updateUserInfo()
-                isAuthenticated = true
+                authState = .authenticated
             }
 
         } catch let error as GoogleAuthError {
@@ -99,7 +117,7 @@ final class AuthViewModel: ObservableObject {
         await authService.signOut()
 
         // Clear local state
-        isAuthenticated = false
+        authState = .unauthenticated
         userEmail = nil
         userName = nil
         errorMessage = nil
@@ -107,9 +125,11 @@ final class AuthViewModel: ObservableObject {
 
     /// Validates stored credentials and refreshes token if needed.
     /// Called on app launch to verify session validity.
+    /// On network errors, falls back to offline-first: if we have
+    /// a stored token, assume authenticated rather than forcing re-auth.
     func validateSession() async {
         guard keychain.hasStoredCredentials() else {
-            isAuthenticated = false
+            authState = .unauthenticated
             return
         }
 
@@ -124,20 +144,22 @@ final class AuthViewModel: ObservableObject {
 
             if isValid {
                 updateUserInfo()
-                isAuthenticated = true
+                authState = .authenticated
             } else {
-                // Credentials invalid, sign out
+                // Credentials explicitly invalid — sign out
                 await signOut()
             }
         } catch {
-            // Validation failed, but don't auto-sign out
-            // User might just be offline
+            // Validation failed (likely network error) — don't auto-sign out.
+            // User might just be offline. If we have stored credentials,
+            // assume authenticated and let the next API call handle refresh.
             print("Session validation failed: \(error)")
 
-            // If we have stored credentials, assume authenticated but mark for refresh
             if keychain.hasStoredCredentials() {
                 updateUserInfo()
-                isAuthenticated = true
+                authState = .authenticated
+            } else {
+                authState = .unauthenticated
             }
         }
     }
@@ -150,14 +172,39 @@ final class AuthViewModel: ObservableObject {
     // MARK: - Private Methods
 
     /// Checks for existing stored credentials on app launch.
+    /// If credentials exist, keeps authState as .unknown (showing splash)
+    /// while async validation runs. If no credentials, immediately
+    /// sets .unauthenticated so onboarding shows without delay.
     private func checkExistingCredentials() {
         if keychain.hasStoredCredentials() {
+            // Credentials exist — keep .unknown state (splash screen shows)
+            // while we validate in the background
             updateUserInfo()
-            // Don't set isAuthenticated until validated
-            // But start a validation task
             Task {
-                await validateSession()
+                // Safety timeout: if validation takes more than 3 seconds
+                // and we have local credentials, assume authenticated.
+                // The actual validation continues — if it fails, signOut() fires.
+                let validationTask = Task {
+                    await validateSession()
+                }
+
+                // Race against a 3-second timeout
+                let timeoutTask = Task {
+                    try await Task.sleep(for: .seconds(3))
+                    // If still .unknown after 3 seconds, optimistically authenticate
+                    if authState == .unknown {
+                        updateUserInfo()
+                        authState = .authenticated
+                    }
+                }
+
+                // Wait for validation to finish, then cancel the timeout
+                await validationTask.value
+                timeoutTask.cancel()
             }
+        } else {
+            // No credentials at all — show onboarding immediately
+            authState = .unauthenticated
         }
     }
 

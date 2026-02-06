@@ -160,6 +160,19 @@ final class APIService {
         return try await get(endpoint, authenticated: true)
     }
 
+    // MARK: - Account Management
+
+    /// Requests permanent account deletion from the server.
+    /// Clears all server-side data and revokes OAuth tokens.
+    /// The caller is responsible for clearing local data afterward.
+    /// - Returns: APIResponse indicating success
+    func deleteAccount() async throws -> APIResponse {
+        try await ensureValidToken()
+
+        let endpoint = "/api/account"
+        return try await delete(endpoint, authenticated: true)
+    }
+
     // MARK: - Session Management
 
     /// Logs the user out, clearing server session.
@@ -233,6 +246,31 @@ final class APIService {
 
         // Encode request body
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
+
+        // Add authorization header if authenticated
+        if authenticated {
+            guard let token = keychain.getAccessToken() else {
+                throw APIError.authenticationRequired
+            }
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+
+        return try await executeRequest(request)
+    }
+
+    /// Performs a DELETE request to the specified endpoint.
+    /// - Parameters:
+    ///   - endpoint: The API endpoint (e.g., "/api/account")
+    ///   - authenticated: Whether to include the Bearer token
+    /// - Returns: Decoded response of type T
+    private func delete<T: Decodable>(_ endpoint: String, authenticated: Bool) async throws -> T {
+        guard let url = URL(string: baseURL + endpoint) else {
+            throw APIError.networkError("Invalid URL")
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "DELETE"
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
 
         // Add authorization header if authenticated
         if authenticated {

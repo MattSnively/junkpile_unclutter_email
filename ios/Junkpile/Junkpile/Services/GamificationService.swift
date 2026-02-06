@@ -61,6 +61,41 @@ final class GamificationService {
         try? modelContext.save()
     }
 
+    // MARK: - Decision Reversal (Undo Support)
+
+    /// Reverses the gamification effects of a decision that the user undid.
+    /// Subtracts the points and XP, recalculates the level (which may decrease),
+    /// and decrements the lifetime action counts.
+    ///
+    /// Design decisions:
+    /// - Achievements are NOT re-locked on undo. They are sticky once unlocked.
+    ///   The edge case (undoing the exact decision that triggered a milestone)
+    ///   is too rare to justify the complexity, and re-locking would feel punishing.
+    /// - Streaks are NOT reversed. The user performed an action today regardless
+    ///   of whether they undid it. Streaks are a daily-level concept.
+    /// - Parameter decision: The Decision being undone
+    func reverseDecision(_ decision: Decision) {
+        guard let profile = getCurrentProfile() else { return }
+
+        // Reverse points and XP
+        profile.totalPoints -= decision.pointsAwarded
+        profile.totalXP -= decision.xpAwarded
+
+        // Recalculate level from new XP total — may decrease if the undone
+        // decision was the one that crossed a level threshold
+        profile.currentLevel = PlayerProfile.calculateLevel(forXP: profile.totalXP)
+
+        // Reverse lifetime action counts
+        switch decision.action {
+        case .unsubscribe:
+            profile.lifetimeUnsubscribes -= 1
+        case .keep:
+            profile.lifetimeKeeps -= 1
+        }
+
+        try? modelContext.save()
+    }
+
     // MARK: - Session Achievements
 
     /// Checks and awards session-based achievements when a session completes.

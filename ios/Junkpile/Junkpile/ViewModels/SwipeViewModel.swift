@@ -32,6 +32,25 @@ final class SwipeViewModel: ObservableObject {
     /// Number of keeps in current session
     @Published var keepCount: Int = 0
 
+    /// The most recent decision, held for the undo window.
+    /// While non-nil, the user can tap Undo to roll back this decision.
+    /// The API call is deferred until the undo window expires.
+    @Published var pendingDecision: PendingDecision?
+
+    /// Countdown progress for the undo timer (1.0 → 0.0 over undoDuration seconds).
+    /// Drives the circular countdown ring on the UndoButton component.
+    @Published var undoTimeRemaining: Double = 0
+
+    // MARK: - Undo Types
+
+    /// Holds all the context needed to either commit or roll back a swipe decision.
+    /// Stored as the single "undo slot" — only the most recent swipe is undoable.
+    struct PendingDecision {
+        let email: Email
+        let decision: Decision
+        let action: DecisionAction
+    }
+
     // MARK: - Session State
 
     /// Possible states of a swipe session
@@ -40,7 +59,7 @@ final class SwipeViewModel: ObservableObject {
         case loading
         case swiping
         case completed
-        case error(String)
+        case error(UserFacingError)
     }
 
     // MARK: - Private Properties
@@ -53,6 +72,15 @@ final class SwipeViewModel: ObservableObject {
 
     /// Gamification service for awarding points/XP
     private var gamificationService: GamificationService?
+
+    /// Timer that counts down the undo window and commits the decision when it expires
+    private var undoTimer: Timer?
+
+    /// Duration in seconds of the undo window
+    private let undoDuration: Double = 4.0
+
+    /// Interval for updating the countdown ring animation (20fps)
+    private let undoTimerInterval: Double = 0.05
 
     // MARK: - Initialization
 
@@ -90,7 +118,7 @@ final class SwipeViewModel: ObservableObject {
             emails = fetchedEmails
 
             if emails.isEmpty {
-                sessionState = .error("No emails with unsubscribe options found")
+                sessionState = .error(UserFacingError.from(.noEmailsFound))
                 errorMessage = "Your inbox is already clean!"
             } else {
                 // Create a new session in SwiftData
@@ -99,10 +127,12 @@ final class SwipeViewModel: ObservableObject {
             }
 
         } catch let error as APIError {
-            sessionState = .error(error.localizedDescription)
+            // Map typed API errors to user-friendly messages
+            sessionState = .error(UserFacingError.from(error))
             errorMessage = error.localizedDescription
         } catch {
-            sessionState = .error(error.localizedDescription)
+            // Fallback for unexpected errors
+            sessionState = .error(UserFacingError.generic())
             errorMessage = error.localizedDescription
         }
 
@@ -110,10 +140,21 @@ final class SwipeViewModel: ObservableObject {
     }
 
     /// Records a swipe decision for an email.
+    /// The decision is persisted immediately to SwiftData (crash safety),
+    /// but the API call is deferred behind a 4-second undo window.
+    /// If the user taps Undo, the local persistence is rolled back
+    /// and the API call never fires.
     /// - Parameters:
     ///   - email: The email that was swiped
     ///   - action: The action taken (unsubscribe or keep)
     func recordDecision(email: Email, action: DecisionAction) {
+        // If there's already a pending decision from a previous swipe,
+        // commit it now (fire its API call) before recording the new one.
+        // Only one undo slot at a time.
+        if pendingDecision != nil {
+            commitPendingDecision()
+        }
+
         // Create decision record
         let decision = Decision(
             emailId: email.id,
@@ -123,7 +164,7 @@ final class SwipeViewModel: ObservableObject {
             unsubscribeUrl: email.unsubscribeUrl
         )
 
-        // Update local counts
+        // Update local counts immediately for responsive UI
         switch action {
         case .unsubscribe:
             unsubscribeCount += 1
@@ -131,7 +172,8 @@ final class SwipeViewModel: ObservableObject {
             keepCount += 1
         }
 
-        // Persist to SwiftData
+        // Persist to SwiftData immediately (crash safety — if app is killed
+        // during the undo window, the decision is not lost)
         if let context = modelContext {
             context.insert(decision)
 
@@ -149,20 +191,136 @@ final class SwipeViewModel: ObservableObject {
             try? context.save()
         }
 
-        // Send to backend API (fire and forget)
+        // Store as pending instead of firing the API call immediately.
+        // The API call will fire when the undo window expires or when
+        // the user swipes the next card (whichever comes first).
+        pendingDecision = PendingDecision(email: email, decision: decision, action: action)
+        startUndoTimer()
+
+        // Check if session is complete
+        if currentIndex >= emails.count - 1 {
+            completeSession()
+        }
+    }
+
+    // MARK: - Undo System
+
+    /// Commits the pending decision by firing the API call and clearing the undo state.
+    /// Called when: (1) undo timer expires, (2) user swipes next card,
+    /// (3) user navigates away, or (4) session resets.
+    func commitPendingDecision() {
+        guard let pending = pendingDecision else { return }
+
+        // Fire the API call (fire and forget — same pattern as before)
+        let emailId = pending.email.id
+        let action = pending.action
         Task {
             do {
-                _ = try await apiService.recordDecision(emailId: email.id, action: action)
+                _ = try await apiService.recordDecision(emailId: emailId, action: action)
             } catch {
                 print("Failed to sync decision to backend: \(error)")
                 // Decision is saved locally, will sync later
             }
         }
 
-        // Check if session is complete
-        if currentIndex >= emails.count - 1 {
-            completeSession()
+        // Clear undo state
+        stopUndoTimer()
+        pendingDecision = nil
+        undoTimeRemaining = 0
+    }
+
+    /// Rolls back the most recent swipe decision.
+    /// Reverses all local persistence: removes the Decision from SwiftData,
+    /// reverses Session/DailyActivity/PlayerProfile counts, and decrements
+    /// currentIndex so the card reappears at the top of the stack.
+    func undoLastDecision() {
+        guard let pending = pendingDecision else { return }
+
+        let decision = pending.decision
+
+        // Stop the timer — no API call should fire for this decision
+        stopUndoTimer()
+
+        // Roll back SwiftData persistence
+        if let context = modelContext {
+            // Reverse session counts and points
+            currentSession?.removeDecision(decision)
+
+            // Reverse daily activity counts
+            let dailyActivity = context.getOrCreateDailyActivity(for: Date())
+            dailyActivity.reverseDecision(decision)
+
+            // Reverse gamification awards (points, XP, level, lifetime counts)
+            gamificationService?.reverseDecision(decision)
+
+            // Delete the Decision object from SwiftData
+            context.delete(decision)
+
+            // Persist the rollback
+            try? context.save()
         }
+
+        // Reverse local UI counts
+        switch pending.action {
+        case .unsubscribe:
+            unsubscribeCount -= 1
+        case .keep:
+            keepCount -= 1
+        }
+
+        // Decrement currentIndex so the card reappears
+        currentIndex -= 1
+
+        // If the session was completed (user swiped the last card),
+        // revert to swiping state so they can continue
+        if sessionState == .completed {
+            sessionState = .swiping
+        }
+
+        // Clear the undo slot
+        pendingDecision = nil
+        undoTimeRemaining = 0
+
+        // Haptic feedback — distinct "undo" feel (warning pattern)
+        let generator = UINotificationFeedbackGenerator()
+        generator.notificationOccurred(.warning)
+    }
+
+    /// Called by SwipeContainerView.onDisappear and resetSession() to ensure
+    /// pending decisions don't linger when navigating away from the swipe view.
+    func commitIfPending() {
+        if pendingDecision != nil {
+            commitPendingDecision()
+        }
+    }
+
+    /// Starts the undo countdown timer. Updates undoTimeRemaining at 20fps
+    /// to drive the countdown ring animation on the UndoButton.
+    private func startUndoTimer() {
+        stopUndoTimer()
+        undoTimeRemaining = 1.0
+
+        undoTimer = Timer.scheduledTimer(withTimeInterval: undoTimerInterval, repeats: true) { [weak self] timer in
+            guard let self else {
+                timer.invalidate()
+                return
+            }
+
+            Task { @MainActor in
+                self.undoTimeRemaining -= self.undoTimerInterval / self.undoDuration
+
+                // Timer expired — commit the decision and fire the API call
+                if self.undoTimeRemaining <= 0 {
+                    self.commitPendingDecision()
+                }
+            }
+        }
+    }
+
+    /// Stops and invalidates the undo timer.
+    private func stopUndoTimer() {
+        undoTimer?.invalidate()
+        undoTimer = nil
     }
 
     /// Completes the current session and calculates final stats.
@@ -186,7 +344,9 @@ final class SwipeViewModel: ObservableObject {
     }
 
     /// Resets the session state to start a new session.
+    /// Commits any pending undo decision first to avoid data loss.
     func resetSession() {
+        commitIfPending()
         emails = []
         currentIndex = 0
         unsubscribeCount = 0
@@ -267,10 +427,10 @@ extension SwipeViewModel.SessionState {
         return false
     }
 
-    /// Error message if in error state, nil otherwise
-    var errorMessage: String? {
-        if case .error(let message) = self {
-            return message
+    /// User-facing error info if in error state, nil otherwise
+    var errorInfo: UserFacingError? {
+        if case .error(let userError) = self {
+            return userError
         }
         return nil
     }

@@ -38,6 +38,8 @@ struct GoogleSignInView: View {
                         Image(systemName: "xmark")
                             .foregroundColor(.black)
                     }
+                    .accessibilityLabel("Close")
+                    .accessibilityHint("Dismiss sign-in sheet")
                 }
             }
             .alert("Sign In Error", isPresented: showingError) {
@@ -47,9 +49,9 @@ struct GoogleSignInView: View {
             } message: {
                 Text(authViewModel.errorMessage ?? "An unknown error occurred")
             }
-            .onChange(of: authViewModel.isAuthenticated) { _, isAuthenticated in
-                // Dismiss when authenticated
-                if isAuthenticated {
+            .onChange(of: authViewModel.authState) { _, authState in
+                // Dismiss the sign-in sheet when authentication succeeds
+                if authState == .authenticated {
                     dismiss()
                 }
             }
@@ -77,7 +79,12 @@ struct GoogleSignInView: View {
         }
     }
 
-    /// Google sign-in button
+    /// Google sign-in button — styled per Google brand guidelines:
+    /// white background, gray border (#747775), Google "G" logo asset.
+    /// NOTE: You must add the official Google "G" PNG files (GoogleG.png,
+    /// GoogleG@2x.png, GoogleG@3x.png) from Google's brand resources at
+    /// https://developers.google.com/identity/branding-guidelines to the
+    /// GoogleG.imageset in Assets.xcassets.
     private var signInButton: some View {
         Button {
             Task {
@@ -85,9 +92,11 @@ struct GoogleSignInView: View {
             }
         } label: {
             HStack(spacing: 12) {
-                // Google "G" logo placeholder (use actual asset in production)
-                Image(systemName: "g.circle.fill")
-                    .font(.title2)
+                // Official Google "G" logo from asset catalog
+                Image("GoogleG")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 24, height: 24)
 
                 Text(authViewModel.isLoading ? "Signing in..." : "Sign in with Google")
                     .font(.headline)
@@ -98,12 +107,15 @@ struct GoogleSignInView: View {
             .background(Color.white)
             .overlay(
                 RoundedRectangle(cornerRadius: 12)
-                    .stroke(Color.black, lineWidth: 2)
+                    .stroke(Color(red: 0.455, green: 0.467, blue: 0.475), lineWidth: 1.5)
             )
             .cornerRadius(12)
+            .shadow(color: .black.opacity(0.08), radius: 2, x: 0, y: 1)
         }
         .disabled(authViewModel.isLoading)
         .opacity(authViewModel.isLoading ? 0.6 : 1.0)
+        .accessibilityLabel(authViewModel.isLoading ? "Signing in" : "Sign in with Google")
+        .accessibilityHint("Connects your Gmail account to Junkpile")
     }
 
     /// Privacy and permissions note
@@ -197,6 +209,8 @@ struct PermissionsView: View {
                         .background(Color.black)
                         .cornerRadius(12)
                 }
+                .accessibilityLabel("Start Cleaning")
+                .accessibilityHint("Begin managing your email subscriptions")
                 .padding(.horizontal, 24)
                 .padding(.bottom, 40)
             }

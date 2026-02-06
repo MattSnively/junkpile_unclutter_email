@@ -15,6 +15,12 @@ struct EmailCardView: View {
     /// Whether the card is currently being dragged
     var isDragging: Bool = false
 
+    // MARK: - Environment
+
+    /// Respects the user's Reduce Motion accessibility setting.
+    /// When enabled, disables the rotation3DEffect on card drag.
+    @Environment(\.accessibilityReduceMotion) var reduceMotion
+
     // MARK: - Constants
 
     /// Threshold in pixels for showing swipe indicators
@@ -46,6 +52,7 @@ struct EmailCardView: View {
                 Rectangle()
                     .fill(Color.gray.opacity(0.2))
                     .frame(height: 1)
+                    .accessibilityHidden(true)
 
                 // Preview content
                 previewSection
@@ -57,11 +64,30 @@ struct EmailCardView: View {
             }
             .padding(20)
         }
-        .frame(height: 450)
+        // Cap card height at 450pt, but on smaller screens (e.g. iPhone SE)
+        // limit to 55% of screen height so hints/progress bar remain visible
+        .frame(height: min(450, UIScreen.main.bounds.height * 0.55))
+        // Gate rotation on Reduce Motion — rotation is purely decorative
         .rotation3DEffect(
-            .degrees(Double(offset.width) / 20),
+            .degrees(reduceMotion ? 0 : Double(offset.width) / 40),
             axis: (x: 0, y: 0, z: 1)
         )
+        // Combine the entire card into one VoiceOver element so it reads
+        // as a single coherent description rather than traversing child views
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(cardAccessibilityLabel)
+        .accessibilityHint(email.hasUnsubscribeOption
+            ? "Unsubscribe link available. Use custom actions to keep or unsubscribe."
+            : "Manual unsubscribe may be required. Use custom actions to keep or unsubscribe.")
+    }
+
+    // MARK: - Accessibility
+
+    /// Composed accessibility label for the entire card, read as a single VoiceOver element.
+    /// Format: "Email from [sender]. Subject: [subject]."
+    private var cardAccessibilityLabel: String {
+        let subject = email.subject.isEmpty ? "No subject" : email.subject
+        return "Email from \(email.sender). Subject: \(subject)."
     }
 
     // MARK: - Components
