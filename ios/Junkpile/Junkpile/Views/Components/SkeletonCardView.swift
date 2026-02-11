@@ -10,12 +10,12 @@ struct SkeletonCardView: View {
         ZStack {
             // Card background — matches EmailCardView's card style
             RoundedRectangle(cornerRadius: 16)
-                .fill(Color.white)
+                .fill(Theme.cardBackground)
                 .overlay(
                     RoundedRectangle(cornerRadius: 16)
-                        .stroke(Color.gray.opacity(0.2), lineWidth: 1.5)
+                        .stroke(Theme.subtleFillStrong, lineWidth: 1.5)
                 )
-                .shadow(color: .black.opacity(0.06), radius: 8, x: 0, y: 4)
+                .shadow(color: Theme.shadow(opacity: 0.06), radius: 8, x: 0, y: 4)
 
             // Placeholder content — mirrors EmailCardView's VStack layout
             VStack(alignment: .leading, spacing: 16) {
@@ -81,7 +81,7 @@ struct SkeletonCardView: View {
     ///   - cornerRadius: Corner radius (defaults to 4pt)
     private func skeletonRect(width: CGFloat, height: CGFloat, cornerRadius: CGFloat = 4) -> some View {
         RoundedRectangle(cornerRadius: cornerRadius)
-            .fill(Color.gray.opacity(0.15))
+            .fill(Theme.subtleFill)
             .frame(maxWidth: width == .infinity ? .infinity : width, alignment: .leading)
             .frame(width: width == .infinity ? nil : width)
             .frame(height: height)

@@ -20,8 +20,8 @@ struct OnboardingView: View {
 
     var body: some View {
         ZStack {
-            // Background
-            Color.white.ignoresSafeArea()
+            // Background — adaptive for dark mode
+            Theme.cardBackground.ignoresSafeArea()
 
             VStack(spacing: 0) {
                 // Page indicator and skip button
@@ -67,7 +67,7 @@ struct OnboardingView: View {
                     }
                 }
                 .font(.body)
-                .foregroundColor(.gray)
+                .foregroundColor(.secondary)
             }
         }
         .padding(.horizontal, 24)
@@ -80,7 +80,7 @@ struct OnboardingView: View {
         HStack(spacing: 8) {
             ForEach(0..<2, id: \.self) { index in
                 Circle()
-                    .fill(index == currentPage ? Color.black : Color.gray.opacity(0.3))
+                    .fill(index == currentPage ? Theme.solidFill : Theme.separator)
                     .frame(width: 8, height: 8)
                     .animation(.easeInOut(duration: 0.2), value: currentPage)
             }
@@ -102,10 +102,10 @@ struct OnboardingView: View {
         } label: {
             Text(currentPage < 1 ? "Next" : "Get Started")
                 .font(.headline)
-                .foregroundColor(.white)
+                .foregroundColor(Theme.solidFillForeground)
                 .frame(maxWidth: .infinity)
                 .frame(height: 56)
-                .background(Color.black)
+                .background(Theme.solidFill)
                 .cornerRadius(12)
         }
         .accessibilityLabel(currentPage < 1 ? "Next" : "Get Started")
@@ -125,18 +125,18 @@ struct WelcomePage: View {
             // App icon/illustration
             Image(systemName: "envelope.badge.shield.half.filled")
                 .font(.system(size: 100))
-                .foregroundStyle(.black, .red)
+                .foregroundStyle(.primary, .red)
 
             // Title
             Text("Take Control of\nYour Inbox")
                 .font(.system(size: 32, weight: .bold))
                 .multilineTextAlignment(.center)
-                .foregroundColor(.black)
+                .foregroundColor(.primary)
 
             // Description
             Text("Swipe through unwanted subscriptions and reclaim your email in minutes.")
                 .font(.body)
-                .foregroundColor(.gray)
+                .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 32)
 
@@ -158,7 +158,7 @@ struct HowItWorksPage: View {
             // Title
             Text("Simple as Swipe")
                 .font(.system(size: 32, weight: .bold))
-                .foregroundColor(.black)
+                .foregroundColor(.primary)
 
             // Instructions
             VStack(spacing: 24) {
@@ -177,11 +177,11 @@ struct HowItWorksPage: View {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Swipe Left")
                             .font(.headline)
-                            .foregroundColor(.black)
+                            .foregroundColor(.primary)
 
                         Text("Unsubscribe from unwanted emails")
                             .font(.subheadline)
-                            .foregroundColor(.gray)
+                            .foregroundColor(.secondary)
                     }
 
                     Spacer()
@@ -202,11 +202,11 @@ struct HowItWorksPage: View {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Swipe Right")
                             .font(.headline)
-                            .foregroundColor(.black)
+                            .foregroundColor(.primary)
 
                         Text("Keep emails you want to receive")
                             .font(.subheadline)
-                            .foregroundColor(.gray)
+                            .foregroundColor(.secondary)
                     }
 
                     Spacer()
@@ -225,6 +225,12 @@ struct HowItWorksPage: View {
 #Preview("Onboarding") {
     OnboardingView()
         .environmentObject(AuthViewModel())
+}
+
+#Preview("Onboarding - Dark") {
+    OnboardingView()
+        .environmentObject(AuthViewModel())
+        .preferredColorScheme(.dark)
 }
 
 #Preview("Welcome Page") {

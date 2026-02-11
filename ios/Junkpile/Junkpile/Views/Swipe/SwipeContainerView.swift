@@ -98,17 +98,17 @@ struct SessionStartView: View {
             // Icon
             Image(systemName: "envelope.badge.fill")
                 .font(.system(size: 80))
-                .foregroundStyle(.black, .red)
+                .foregroundStyle(.primary, .red)
 
             // Title
             Text("Ready to Clean?")
                 .font(.title.bold())
-                .foregroundColor(.black)
+                .foregroundColor(.primary)
 
             // Description
             Text("We'll fetch your emails with unsubscribe options.\nSwipe left to unsubscribe, right to keep.")
                 .font(.body)
-                .foregroundColor(.gray)
+                .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 32)
 
@@ -118,10 +118,10 @@ struct SessionStartView: View {
             Button(action: onStart) {
                 Text("Start Session")
                     .font(.headline)
-                    .foregroundColor(.white)
+                    .foregroundColor(Theme.solidFillForeground)
                     .frame(maxWidth: .infinity)
                     .frame(height: 56)
-                    .background(Color.black)
+                    .background(Theme.solidFill)
                     .cornerRadius(12)
             }
             .accessibilityLabel("Start Session")
@@ -141,12 +141,12 @@ struct LoadingView: View {
         VStack(spacing: 24) {
             ProgressView()
                 .scaleEffect(1.5)
-                .tint(.black)
+                .tint(.primary)
                 .accessibilityLabel("Loading emails")
 
             Text("Fetching your emails...")
                 .font(.headline)
-                .foregroundColor(.gray)
+                .foregroundColor(.secondary)
         }
     }
 }
@@ -207,12 +207,12 @@ struct SwipeView: View {
                 ZStack(alignment: .leading) {
                     // Background
                     RoundedRectangle(cornerRadius: 4)
-                        .fill(Color.gray.opacity(0.2))
+                        .fill(Theme.subtleFillStrong)
                         .frame(height: 8)
 
                     // Progress
                     RoundedRectangle(cornerRadius: 4)
-                        .fill(Color.black)
+                        .fill(Theme.solidFill)
                         .frame(width: geometry.size.width * viewModel.progress, height: 8)
                         .animation(.easeInOut(duration: 0.3), value: viewModel.progress)
                 }
@@ -224,13 +224,13 @@ struct SwipeView: View {
             HStack {
                 Text("\(viewModel.currentIndex + 1) of \(viewModel.emails.count)")
                     .font(.caption)
-                    .foregroundColor(.gray)
+                    .foregroundColor(.secondary)
 
                 Spacer()
 
                 Text("\(viewModel.remainingEmails) remaining")
                     .font(.caption)
-                    .foregroundColor(.gray)
+                    .foregroundColor(.secondary)
             }
         }
         // Combine into one VoiceOver element: "3 of 10, 7 remaining"
@@ -247,10 +247,10 @@ struct SwipeView: View {
                     .foregroundColor(.red)
                 Text("\(viewModel.unsubscribeCount.localized)")
                     .font(.headline)
-                    .foregroundColor(.black)
+                    .foregroundColor(.primary)
                 Text("Unsubscribed")
                     .font(.caption)
-                    .foregroundColor(.gray)
+                    .foregroundColor(.secondary)
             }
             .accessibilityElement(children: .combine)
             .accessibilityLabel("\(viewModel.unsubscribeCount) unsubscribed")
@@ -261,10 +261,10 @@ struct SwipeView: View {
             HStack(spacing: 8) {
                 Text("Kept")
                     .font(.caption)
-                    .foregroundColor(.gray)
+                    .foregroundColor(.secondary)
                 Text("\(viewModel.keepCount.localized)")
                     .font(.headline)
-                    .foregroundColor(.black)
+                    .foregroundColor(.primary)
                 Image(systemName: "checkmark.circle.fill")
                     .foregroundColor(.green)
             }
@@ -330,7 +330,7 @@ struct SessionCompleteView: View {
             // Title
             Text("Session Complete!")
                 .font(.title.bold())
-                .foregroundColor(.black)
+                .foregroundColor(.primary)
 
             // Stats summary
             statsCard
@@ -341,10 +341,10 @@ struct SessionCompleteView: View {
                     VStack {
                         Text("+\(session.pointsEarned.localized)")
                             .font(.title2.bold())
-                            .foregroundColor(.black)
+                            .foregroundColor(.primary)
                         Text("Points")
                             .font(.caption)
-                            .foregroundColor(.gray)
+                            .foregroundColor(.secondary)
                     }
                     .accessibilityElement(children: .combine)
                     .accessibilityLabel("Plus \(session.pointsEarned.localized) points")
@@ -352,17 +352,17 @@ struct SessionCompleteView: View {
                     VStack {
                         Text("+\(session.xpEarned.localized)")
                             .font(.title2.bold())
-                            .foregroundColor(.black)
+                            .foregroundColor(.primary)
                         Text("XP")
                             .font(.caption)
-                            .foregroundColor(.gray)
+                            .foregroundColor(.secondary)
                     }
                     .accessibilityElement(children: .combine)
                     .accessibilityLabel("Plus \(session.xpEarned.localized) XP")
                 }
                 .padding(.vertical, 16)
                 .padding(.horizontal, 32)
-                .background(Color.gray.opacity(0.1))
+                .background(Theme.subtleFill)
                 .cornerRadius(12)
             }
 
@@ -370,7 +370,7 @@ struct SessionCompleteView: View {
             if gamificationViewModel.currentStreak > 0 {
                 Text("You're on a \(gamificationViewModel.currentStreak)-day streak! Come back tomorrow to keep it going.")
                     .font(.subheadline)
-                    .foregroundColor(.gray)
+                    .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 32)
             }
@@ -383,10 +383,10 @@ struct SessionCompleteView: View {
                 Button(action: onNewSession) {
                     Text("New Session")
                         .font(.headline)
-                        .foregroundColor(.white)
+                        .foregroundColor(Theme.solidFillForeground)
                         .frame(maxWidth: .infinity)
                         .frame(height: 56)
-                        .background(Color.black)
+                        .background(Theme.solidFill)
                         .cornerRadius(12)
                 }
                 .accessibilityHint("Start swiping through more emails")
@@ -397,13 +397,13 @@ struct SessionCompleteView: View {
                 } label: {
                     Text("View Stats")
                         .font(.headline)
-                        .foregroundColor(.black)
+                        .foregroundColor(.primary)
                         .frame(maxWidth: .infinity)
                         .frame(height: 56)
-                        .background(Color.white)
+                        .background(Theme.cardBackground)
                         .overlay(
                             RoundedRectangle(cornerRadius: 12)
-                                .stroke(Color.black, lineWidth: 2)
+                                .stroke(Theme.cardBorder, lineWidth: 2)
                         )
                         .cornerRadius(12)
                 }
@@ -415,7 +415,7 @@ struct SessionCompleteView: View {
                 } label: {
                     Text("Done")
                         .font(.subheadline)
-                        .foregroundColor(.gray)
+                        .foregroundColor(.secondary)
                 }
                 .accessibilityHint("Return to the Home tab")
             }
@@ -434,14 +434,14 @@ struct SessionCompleteView: View {
                     .foregroundColor(.red)
                 Text("Unsubscribed")
                     .font(.caption)
-                    .foregroundColor(.gray)
+                    .foregroundColor(.secondary)
             }
             .accessibilityElement(children: .combine)
             .accessibilityLabel("\(viewModel.unsubscribeCount.localized) unsubscribed")
 
             // Divider — decorative, hide from VoiceOver
             Rectangle()
-                .fill(Color.gray.opacity(0.3))
+                .fill(Theme.separator)
                 .frame(width: 1, height: 60)
                 .accessibilityHidden(true)
 
@@ -452,17 +452,17 @@ struct SessionCompleteView: View {
                     .foregroundColor(.green)
                 Text("Kept")
                     .font(.caption)
-                    .foregroundColor(.gray)
+                    .foregroundColor(.secondary)
             }
             .accessibilityElement(children: .combine)
             .accessibilityLabel("\(viewModel.keepCount.localized) kept")
         }
         .padding(.vertical, 24)
         .padding(.horizontal, 48)
-        .background(Color.white)
+        .background(Theme.cardBackground)
         .overlay(
             RoundedRectangle(cornerRadius: 16)
-                .stroke(Color.black, lineWidth: 2)
+                .stroke(Theme.cardBorder, lineWidth: 2)
         )
         .cornerRadius(16)
     }
@@ -492,12 +492,12 @@ struct ErrorView: View {
             // Title — short, friendly headline
             Text(error.title)
                 .font(.title.bold())
-                .foregroundColor(.black)
+                .foregroundColor(.primary)
 
             // Message — guidance on what happened and what to do
             Text(error.message)
                 .font(.body)
-                .foregroundColor(.gray)
+                .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 32)
 
@@ -507,10 +507,10 @@ struct ErrorView: View {
             Button(action: onRetry) {
                 Text(error.actionLabel)
                     .font(.headline)
-                    .foregroundColor(.white)
+                    .foregroundColor(Theme.solidFillForeground)
                     .frame(maxWidth: .infinity)
                     .frame(height: 56)
-                    .background(Color.black)
+                    .background(Theme.solidFill)
                     .cornerRadius(12)
             }
             .accessibilityLabel(error.actionLabel)
@@ -529,6 +529,15 @@ struct ErrorView: View {
     SwipeContainerView(selectedTab: $selectedTab)
         .environmentObject(GamificationViewModel())
         .modelContainer(PersistenceController.preview.container)
+}
+
+#Preview("Swipe Container - Dark") {
+    @Previewable @State var selectedTab: Tab = .swipe
+
+    SwipeContainerView(selectedTab: $selectedTab)
+        .environmentObject(GamificationViewModel())
+        .modelContainer(PersistenceController.preview.container)
+        .preferredColorScheme(.dark)
 }
 
 #Preview("Session Start") {

@@ -49,39 +49,39 @@ struct AchievementsGalleryView: View {
             VStack(spacing: 4) {
                 Text("\(gamificationViewModel.unlockedCount)")
                     .font(.system(size: 36, weight: .bold))
-                    .foregroundColor(.black)
+                    .foregroundColor(.primary)
 
                 Text("Unlocked")
                     .font(.caption)
-                    .foregroundColor(.gray)
+                    .foregroundColor(.secondary)
             }
 
             // Progress ring
             ZStack {
                 Circle()
-                    .stroke(Color.gray.opacity(0.2), lineWidth: 8)
+                    .stroke(Theme.subtleFillStrong, lineWidth: 8)
                     .frame(width: 80, height: 80)
 
                 Circle()
                     .trim(from: 0, to: gamificationViewModel.achievementProgress)
-                    .stroke(Color.black, style: StrokeStyle(lineWidth: 8, lineCap: .round))
+                    .stroke(Theme.solidFill, style: StrokeStyle(lineWidth: 8, lineCap: .round))
                     .frame(width: 80, height: 80)
                     .rotationEffect(.degrees(-90))
 
                 Text("\(Int(gamificationViewModel.achievementProgress * 100))%")
                     .font(.headline)
-                    .foregroundColor(.black)
+                    .foregroundColor(.primary)
             }
 
             // Total count
             VStack(spacing: 4) {
                 Text("\(gamificationViewModel.totalAchievements)")
                     .font(.system(size: 36, weight: .bold))
-                    .foregroundColor(.gray)
+                    .foregroundColor(.secondary)
 
                 Text("Total")
                     .font(.caption)
-                    .foregroundColor(.gray)
+                    .foregroundColor(.secondary)
             }
         }
         .padding(.vertical, 16)
@@ -95,7 +95,7 @@ struct AchievementsGalleryView: View {
             // Category header
             Text(category.rawValue)
                 .font(.headline)
-                .foregroundColor(.black)
+                .foregroundColor(.primary)
                 .padding(.horizontal, 4)
 
             // Achievement grid
@@ -122,28 +122,28 @@ struct AchievementsGalleryView: View {
                 // Icon
                 Image(systemName: achievement.iconName)
                     .font(.title)
-                    .foregroundColor(isUnlocked ? .black : .gray.opacity(0.4))
+                    .foregroundColor(isUnlocked ? .primary : .secondary.opacity(0.4))
                     .frame(width: 50, height: 50)
-                    .background(isUnlocked ? Color.gray.opacity(0.1) : Color.gray.opacity(0.05))
+                    .background(isUnlocked ? Theme.subtleFill : Theme.subtleFill.opacity(0.5))
                     .cornerRadius(12)
 
                 // Title
                 Text(achievement.title)
                     .font(.caption2)
-                    .foregroundColor(isUnlocked ? .black : .gray)
+                    .foregroundColor(isUnlocked ? .primary : .secondary)
                     .lineLimit(2)
                     .multilineTextAlignment(.center)
                     .minimumScaleFactor(0.7)
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 12)
-            .background(Color.white)
+            .background(Theme.cardBackground)
             .cornerRadius(12)
             .overlay(
                 RoundedRectangle(cornerRadius: 12)
-                    .stroke(isUnlocked ? Color.clear : Color.gray.opacity(0.2), lineWidth: 1)
+                    .stroke(isUnlocked ? .clear : Theme.subtleFillStrong, lineWidth: 1)
             )
-            .shadow(color: isUnlocked ? .black.opacity(0.05) : .clear, radius: 5, x: 0, y: 2)
+            .shadow(color: isUnlocked ? Theme.shadow(opacity: 0.05) : .clear, radius: 5, x: 0, y: 2)
         }
         .accessibilityLabel("\(achievement.title). \(isUnlocked ? "Unlocked" : "Locked")")
         .accessibilityHint("Double tap to view details")
@@ -169,7 +169,7 @@ struct AchievementDetailView: View {
         VStack(spacing: 24) {
             // Handle bar
             RoundedRectangle(cornerRadius: 2)
-                .fill(Color.gray.opacity(0.3))
+                .fill(Theme.separator)
                 .frame(width: 40, height: 4)
                 .padding(.top, 8)
 
@@ -178,18 +178,18 @@ struct AchievementDetailView: View {
             // Icon
             ZStack {
                 Circle()
-                    .fill(isUnlocked ? Color.black : Color.gray.opacity(0.2))
+                    .fill(isUnlocked ? Theme.solidFill : Theme.subtleFillStrong)
                     .frame(width: 100, height: 100)
 
                 Image(systemName: achievement.iconName)
                     .font(.system(size: 44))
-                    .foregroundColor(isUnlocked ? .white : .gray)
+                    .foregroundColor(isUnlocked ? Theme.solidFillForeground : .secondary)
             }
 
             // Title
             Text(achievement.title)
                 .font(.title2.bold())
-                .foregroundColor(.black)
+                .foregroundColor(.primary)
 
             // Status
             if isUnlocked {
@@ -203,13 +203,13 @@ struct AchievementDetailView: View {
             } else {
                 Text("Locked")
                     .font(.subheadline)
-                    .foregroundColor(.gray)
+                    .foregroundColor(.secondary)
             }
 
             // Description
             Text(achievement.description)
                 .font(.body)
-                .foregroundColor(.gray)
+                .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 32)
 
@@ -220,10 +220,10 @@ struct AchievementDetailView: View {
                     GeometryReader { geometry in
                         ZStack(alignment: .leading) {
                             RoundedRectangle(cornerRadius: 4)
-                                .fill(Color.gray.opacity(0.2))
+                                .fill(Theme.subtleFillStrong)
 
                             RoundedRectangle(cornerRadius: 4)
-                                .fill(Color.black)
+                                .fill(Theme.solidFill)
                                 .frame(width: geometry.size.width * progress)
                         }
                     }
@@ -233,7 +233,7 @@ struct AchievementDetailView: View {
                     // Progress label — e.g., "3 / 10"
                     Text("\(Int(progress * Double(threshold))) / \(threshold)")
                         .font(.caption)
-                        .foregroundColor(.gray)
+                        .foregroundColor(.secondary)
                 }
                 .padding(.horizontal, 32)
                 .accessibilityElement(children: .combine)
@@ -244,15 +244,15 @@ struct AchievementDetailView: View {
             VStack(spacing: 4) {
                 Text("+\(achievement.pointsBonus)")
                     .font(.title3.bold())
-                    .foregroundColor(isUnlocked ? .black : .gray)
+                    .foregroundColor(isUnlocked ? .primary : .secondary)
 
                 Text("Bonus Points")
                     .font(.caption)
-                    .foregroundColor(.gray)
+                    .foregroundColor(.secondary)
             }
             .padding(.vertical, 16)
             .padding(.horizontal, 32)
-            .background(Color.gray.opacity(0.1))
+            .background(Theme.subtleFill)
             .cornerRadius(12)
 
             Spacer()
@@ -263,10 +263,10 @@ struct AchievementDetailView: View {
             } label: {
                 Text("Done")
                     .font(.headline)
-                    .foregroundColor(.white)
+                    .foregroundColor(Theme.solidFillForeground)
                     .frame(maxWidth: .infinity)
                     .frame(height: 50)
-                    .background(Color.black)
+                    .background(Theme.solidFill)
                     .cornerRadius(12)
             }
             .padding(.horizontal, 24)
@@ -388,6 +388,15 @@ struct AchievementUnlockView: View {
             .environmentObject(GamificationViewModel())
             .modelContainer(PersistenceController.preview.container)
     }
+}
+
+#Preview("Achievements Gallery - Dark") {
+    NavigationStack {
+        AchievementsGalleryView()
+            .environmentObject(GamificationViewModel())
+            .modelContainer(PersistenceController.preview.container)
+    }
+    .preferredColorScheme(.dark)
 }
 
 #Preview("Achievement Detail - Unlocked") {

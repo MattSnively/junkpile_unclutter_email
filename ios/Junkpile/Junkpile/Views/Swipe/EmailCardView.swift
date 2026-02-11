@@ -50,7 +50,7 @@ struct EmailCardView: View {
 
                 // Divider
                 Rectangle()
-                    .fill(Color.gray.opacity(0.2))
+                    .fill(Theme.separator)
                     .frame(height: 1)
                     .accessibilityHidden(true)
 
@@ -95,12 +95,12 @@ struct EmailCardView: View {
     /// Card background with border color based on swipe direction
     private var cardBackground: some View {
         RoundedRectangle(cornerRadius: 16)
-            .fill(Color.white)
+            .fill(Theme.cardBackground)
             .overlay(
                 RoundedRectangle(cornerRadius: 16)
                     .stroke(borderColor, lineWidth: 3)
             )
-            .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 5)
+            .shadow(color: Theme.shadow(opacity: 0.1), radius: 10, x: 0, y: 5)
     }
 
     /// Border color changes based on swipe direction
@@ -110,7 +110,7 @@ struct EmailCardView: View {
         } else if offset.width < -indicatorThreshold {
             return .red // Unsubscribe
         }
-        return .black
+        return Theme.cardBorder
     }
 
     /// Sender information section
@@ -118,11 +118,11 @@ struct EmailCardView: View {
         VStack(alignment: .leading, spacing: 4) {
             Text("From")
                 .font(.caption)
-                .foregroundColor(.gray)
+                .foregroundColor(.secondary)
 
             Text(email.sender)
                 .font(.headline)
-                .foregroundColor(.black)
+                .foregroundColor(.primary)
                 .lineLimit(1)
         }
     }
@@ -156,11 +156,11 @@ struct EmailCardView: View {
         VStack(alignment: .leading, spacing: 4) {
             Text("Subject")
                 .font(.caption)
-                .foregroundColor(.gray)
+                .foregroundColor(.secondary)
 
             Text(email.subject.isEmpty ? "(No Subject)" : email.subject)
                 .font(.body)
-                .foregroundColor(.black)
+                .foregroundColor(.primary)
                 .lineLimit(3)
         }
     }
@@ -170,19 +170,19 @@ struct EmailCardView: View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Preview")
                 .font(.caption)
-                .foregroundColor(.gray)
+                .foregroundColor(.secondary)
 
             // Show email preview or a placeholder
             if let htmlBody = email.htmlBody, !htmlBody.isEmpty {
                 // Strip HTML and show plain text preview
                 Text(htmlBody.strippingHTML().prefix(300))
                     .font(.subheadline)
-                    .foregroundColor(.gray)
+                    .foregroundColor(.secondary)
                     .lineLimit(8)
             } else {
                 Text("No preview available")
                     .font(.subheadline)
-                    .foregroundColor(.gray.opacity(0.6))
+                    .foregroundColor(.secondary.opacity(0.6))
                     .italic()
             }
         }
@@ -196,13 +196,13 @@ struct EmailCardView: View {
                     .foregroundColor(.green)
                 Text("Unsubscribe available")
                     .font(.caption)
-                    .foregroundColor(.gray)
+                    .foregroundColor(.secondary)
             } else {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .foregroundColor(.orange)
                 Text("Manual unsubscribe may be required")
                     .font(.caption)
-                    .foregroundColor(.gray)
+                    .foregroundColor(.secondary)
             }
             Spacer()
         }

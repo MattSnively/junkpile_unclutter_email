@@ -36,7 +36,7 @@ struct GoogleSignInView: View {
                         dismiss()
                     } label: {
                         Image(systemName: "xmark")
-                            .foregroundColor(.black)
+                            .foregroundColor(.primary)
                     }
                     .accessibilityLabel("Close")
                     .accessibilityHint("Dismiss sign-in sheet")
@@ -66,15 +66,15 @@ struct GoogleSignInView: View {
             // Gmail icon
             Image(systemName: "envelope.fill")
                 .font(.system(size: 60))
-                .foregroundColor(.black)
+                .foregroundColor(.primary)
 
             Text("Connect Your Gmail")
                 .font(.system(size: 28, weight: .bold))
-                .foregroundColor(.black)
+                .foregroundColor(.primary)
 
             Text("Sign in with Google to start cleaning your inbox")
                 .font(.body)
-                .foregroundColor(.gray)
+                .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
         }
     }
@@ -101,16 +101,16 @@ struct GoogleSignInView: View {
                 Text(authViewModel.isLoading ? "Signing in..." : "Sign in with Google")
                     .font(.headline)
             }
-            .foregroundColor(.black)
+            .foregroundColor(.primary)
             .frame(maxWidth: .infinity)
             .frame(height: 56)
-            .background(Color.white)
+            .background(Theme.cardBackground)
             .overlay(
                 RoundedRectangle(cornerRadius: 12)
-                    .stroke(Color(red: 0.455, green: 0.467, blue: 0.475), lineWidth: 1.5)
+                    .stroke(Theme.googleBorder, lineWidth: 1.5)
             )
             .cornerRadius(12)
-            .shadow(color: .black.opacity(0.08), radius: 2, x: 0, y: 1)
+            .shadow(color: Theme.shadow(opacity: 0.08), radius: 2, x: 0, y: 1)
         }
         .disabled(authViewModel.isLoading)
         .opacity(authViewModel.isLoading ? 0.6 : 1.0)
@@ -123,7 +123,7 @@ struct GoogleSignInView: View {
         VStack(spacing: 12) {
             Text("What we access:")
                 .font(.subheadline.bold())
-                .foregroundColor(.black)
+                .foregroundColor(.primary)
 
             VStack(alignment: .leading, spacing: 8) {
                 permissionRow(icon: "envelope", text: "Read email metadata")
@@ -132,12 +132,12 @@ struct GoogleSignInView: View {
 
             Text("We never store your email content or share your data.")
                 .font(.caption)
-                .foregroundColor(.gray)
+                .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
                 .padding(.top, 8)
         }
         .padding(16)
-        .background(Color.gray.opacity(0.1))
+        .background(Theme.subtleFill)
         .cornerRadius(12)
     }
 
@@ -145,12 +145,12 @@ struct GoogleSignInView: View {
     private func permissionRow(icon: String, text: String) -> some View {
         HStack(spacing: 8) {
             Image(systemName: icon)
-                .foregroundColor(.gray)
+                .foregroundColor(.secondary)
                 .frame(width: 20)
 
             Text(text)
                 .font(.subheadline)
-                .foregroundColor(.black)
+                .foregroundColor(.primary)
 
             Spacer()
         }
@@ -190,7 +190,7 @@ struct PermissionsView: View {
 
                     Text("Junkpile can now help you manage your email subscriptions.")
                         .font(.body)
-                        .foregroundColor(.gray)
+                        .foregroundColor(.secondary)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, 32)
                 }
@@ -203,10 +203,10 @@ struct PermissionsView: View {
                 } label: {
                     Text("Start Cleaning")
                         .font(.headline)
-                        .foregroundColor(.white)
+                        .foregroundColor(Theme.solidFillForeground)
                         .frame(maxWidth: .infinity)
                         .frame(height: 56)
-                        .background(Color.black)
+                        .background(Theme.solidFill)
                         .cornerRadius(12)
                 }
                 .accessibilityLabel("Start Cleaning")
