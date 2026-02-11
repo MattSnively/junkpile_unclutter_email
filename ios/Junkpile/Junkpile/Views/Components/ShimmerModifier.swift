@@ -20,10 +20,10 @@ struct ShimmerModifier: ViewModifier {
 
     func body(content: Content) -> some View {
         if reduceMotion {
-            // Static gray overlay when Reduce Motion is enabled — no animation
+            // Static fill overlay when Reduce Motion is enabled — no animation
             content
                 .overlay(
-                    Color.gray.opacity(0.15)
+                    Theme.subtleFill.opacity(0.5)
                 )
         } else {
             // Animated diagonal gradient sweep from left to right
@@ -32,9 +32,9 @@ struct ShimmerModifier: ViewModifier {
                     GeometryReader { geometry in
                         LinearGradient(
                             gradient: Gradient(colors: [
-                                Color.white.opacity(0.0),
-                                Color.white.opacity(0.4),
-                                Color.white.opacity(0.0)
+                                Theme.shimmerHighlight.opacity(0.0),
+                                Theme.shimmerHighlight,
+                                Theme.shimmerHighlight.opacity(0.0)
                             ]),
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing

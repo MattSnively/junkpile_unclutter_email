@@ -106,12 +106,12 @@ struct SettingsView: View {
                 // Avatar
                 ZStack {
                     Circle()
-                        .fill(Color.black)
+                        .fill(Theme.solidFill)
                         .frame(width: 50, height: 50)
 
                     Text(authViewModel.userInitial)
                         .font(.title3.bold())
-                        .foregroundColor(.white)
+                        .foregroundColor(Theme.solidFillForeground)
                 }
 
                 // User info
@@ -170,7 +170,7 @@ struct SettingsView: View {
                     Text("Streak Reminders")
                 }
             }
-            .tint(.black)
+            .tint(.primary)
 
             // Notification time picker (only if enabled)
             if streakNotificationsEnabled {
@@ -434,7 +434,7 @@ struct SettingsView: View {
             } label: {
                 HStack {
                     Image(systemName: "doc.text")
-                        .foregroundColor(.gray)
+                        .foregroundColor(.secondary)
 
                     Text("Disclaimer")
                         .foregroundColor(.primary)

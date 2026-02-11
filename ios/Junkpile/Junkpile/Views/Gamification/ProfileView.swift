@@ -40,23 +40,23 @@ struct ProfileView: View {
             // Avatar
             ZStack {
                 Circle()
-                    .fill(Color.black)
+                    .fill(Theme.solidFill)
                     .frame(width: 80, height: 80)
 
                 Text(gamificationViewModel.profile?.displayName.prefix(1).uppercased() ?? "?")
                     .font(.system(size: 32, weight: .bold))
-                    .foregroundColor(.white)
+                    .foregroundColor(Theme.solidFillForeground)
             }
 
             // Name
             Text(gamificationViewModel.profile?.displayName ?? "User")
                 .font(.title2.bold())
-                .foregroundColor(.black)
+                .foregroundColor(.primary)
 
             // Level title
             Text(gamificationViewModel.levelTitle)
                 .font(.subheadline)
-                .foregroundColor(.gray)
+                .foregroundColor(.secondary)
         }
         .padding(.vertical, 16)
     }
@@ -70,11 +70,11 @@ struct ProfileView: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Level")
                         .font(.caption)
-                        .foregroundColor(.gray)
+                        .foregroundColor(.secondary)
 
                     Text("\(gamificationViewModel.currentLevel.localized)")
                         .font(.system(size: 36, weight: .bold))
-                        .foregroundColor(.black)
+                        .foregroundColor(.primary)
                 }
 
                 Spacer()
@@ -83,11 +83,11 @@ struct ProfileView: View {
                 VStack(alignment: .trailing, spacing: 4) {
                     Text("Total XP")
                         .font(.caption)
-                        .foregroundColor(.gray)
+                        .foregroundColor(.secondary)
 
                     Text(gamificationViewModel.formattedXP)
                         .font(.title3.bold())
-                        .foregroundColor(.black)
+                        .foregroundColor(.primary)
                 }
             }
 
@@ -97,11 +97,11 @@ struct ProfileView: View {
                     ZStack(alignment: .leading) {
                         // Background
                         RoundedRectangle(cornerRadius: 6)
-                            .fill(Color.gray.opacity(0.2))
+                            .fill(Theme.subtleFillStrong)
 
                         // Progress
                         RoundedRectangle(cornerRadius: 6)
-                            .fill(Color.black)
+                            .fill(Theme.solidFill)
                             .frame(width: geometry.size.width * gamificationViewModel.levelProgress)
                     }
                 }
@@ -112,20 +112,20 @@ struct ProfileView: View {
                 HStack {
                     Text("\(gamificationViewModel.xpToNextLevel.localized) XP to Level \(gamificationViewModel.currentLevel + 1)")
                         .font(.caption)
-                        .foregroundColor(.gray)
+                        .foregroundColor(.secondary)
 
                     Spacer()
 
                     Text("\(Int(gamificationViewModel.levelProgress * 100))%")
                         .font(.caption.bold())
-                        .foregroundColor(.black)
+                        .foregroundColor(.primary)
                 }
             }
         }
         .padding(20)
-        .background(Color.white)
+        .background(Theme.cardBackground)
         .cornerRadius(16)
-        .shadow(color: .black.opacity(0.05), radius: 10, x: 0, y: 2)
+        .shadow(color: Theme.shadow(opacity: 0.05), radius: 10, x: 0, y: 2)
         // Combine into one VoiceOver element for level progress
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Level \(gamificationViewModel.currentLevel). \(gamificationViewModel.formattedXP) total XP. \(Int(gamificationViewModel.levelProgress * 100)) percent to level \(gamificationViewModel.currentLevel + 1). \(gamificationViewModel.xpToNextLevel) XP remaining.")
@@ -176,18 +176,18 @@ struct ProfileView: View {
 
             Text(value)
                 .font(.headline)
-                .foregroundColor(.black)
+                .foregroundColor(.primary)
                 .minimumScaleFactor(0.7)
 
             Text(title)
                 .font(.caption)
-                .foregroundColor(.gray)
+                .foregroundColor(.secondary)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 16)
-        .background(Color.white)
+        .background(Theme.cardBackground)
         .cornerRadius(12)
-        .shadow(color: .black.opacity(0.05), radius: 5, x: 0, y: 2)
+        .shadow(color: Theme.shadow(opacity: 0.05), radius: 5, x: 0, y: 2)
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(title): \(value)")
     }
@@ -198,7 +198,7 @@ struct ProfileView: View {
             HStack {
                 Text("Achievements")
                     .font(.headline)
-                    .foregroundColor(.black)
+                    .foregroundColor(.primary)
 
                 Spacer()
 
@@ -209,7 +209,7 @@ struct ProfileView: View {
                         Image(systemName: "chevron.right")
                             .font(.caption)
                     }
-                    .foregroundColor(.gray)
+                    .foregroundColor(.secondary)
                 }
             }
 
@@ -218,22 +218,22 @@ struct ProfileView: View {
                 HStack {
                     Text("\(gamificationViewModel.unlockedCount.localized) of \(gamificationViewModel.totalAchievements.localized)")
                         .font(.subheadline)
-                        .foregroundColor(.black)
+                        .foregroundColor(.primary)
 
                     Spacer()
 
                     Text("\(Int(gamificationViewModel.achievementProgress * 100))%")
                         .font(.subheadline.bold())
-                        .foregroundColor(.black)
+                        .foregroundColor(.primary)
                 }
 
                 GeometryReader { geometry in
                     ZStack(alignment: .leading) {
                         RoundedRectangle(cornerRadius: 4)
-                            .fill(Color.gray.opacity(0.2))
+                            .fill(Theme.subtleFillStrong)
 
                         RoundedRectangle(cornerRadius: 4)
-                            .fill(Color.black)
+                            .fill(Theme.solidFill)
                             .frame(width: geometry.size.width * gamificationViewModel.achievementProgress)
                     }
                 }
@@ -249,9 +249,9 @@ struct ProfileView: View {
                     if let achievement = unlocked.achievement {
                         Image(systemName: achievement.iconName)
                             .font(.title2)
-                            .foregroundColor(.black)
+                            .foregroundColor(.primary)
                             .frame(width: 44, height: 44)
-                            .background(Color.gray.opacity(0.1))
+                            .background(Theme.subtleFill)
                             .cornerRadius(8)
                     }
                 }
@@ -260,9 +260,9 @@ struct ProfileView: View {
             }
         }
         .padding(16)
-        .background(Color.white)
+        .background(Theme.cardBackground)
         .cornerRadius(16)
-        .shadow(color: .black.opacity(0.05), radius: 10, x: 0, y: 2)
+        .shadow(color: Theme.shadow(opacity: 0.05), radius: 10, x: 0, y: 2)
     }
 }
 
@@ -274,4 +274,13 @@ struct ProfileView: View {
             .environmentObject(GamificationViewModel())
             .modelContainer(PersistenceController.preview.container)
     }
+}
+
+#Preview("Profile View - Dark") {
+    NavigationStack {
+        ProfileView()
+            .environmentObject(GamificationViewModel())
+            .modelContainer(PersistenceController.preview.container)
+    }
+    .preferredColorScheme(.dark)
 }

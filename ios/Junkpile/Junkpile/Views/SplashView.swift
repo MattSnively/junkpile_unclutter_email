@@ -14,26 +14,26 @@ struct SplashView: View {
                 // App icon — matches the onboarding welcome page icon
                 Image(systemName: "envelope.badge.shield.half.filled")
                     .font(.system(size: 80))
-                    .foregroundStyle(.black, .red)
+                    .foregroundStyle(.primary, .red)
                     .accessibilityHidden(true)
 
                 // App name
                 Text("Junkpile")
                     .font(.largeTitle.bold())
-                    .foregroundColor(.black)
+                    .foregroundColor(.primary)
             }
             .shimmer()
 
             // Loading indicator — shows that credentials are being checked
             ProgressView()
-                .tint(.black)
+                .tint(.primary)
                 .accessibilityLabel("Loading")
                 .accessibilityHint("Checking your saved credentials")
 
             Spacer()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color.white)
+        .background(Theme.cardBackground)
     }
 }
 

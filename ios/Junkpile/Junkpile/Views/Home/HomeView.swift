@@ -65,7 +65,7 @@ struct HomeView: View {
                     NavigationLink(destination: ProfileView()) {
                         Image(systemName: "person.circle")
                             .font(.title2)
-                            .foregroundColor(.black)
+                            .foregroundColor(.primary)
                     }
                     .accessibilityLabel("Profile")
                     .accessibilityHint("View your profile and statistics")
@@ -97,11 +97,11 @@ struct HomeView: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text("Welcome back,")
                     .font(.subheadline)
-                    .foregroundColor(.gray)
+                    .foregroundColor(.secondary)
 
                 Text(authViewModel.displayName)
                     .font(.title2.bold())
-                    .foregroundColor(.black)
+                    .foregroundColor(.primary)
             }
 
             Spacer()
@@ -113,7 +113,7 @@ struct HomeView: View {
 
                 Text(gamificationViewModel.formattedPoints)
                     .font(.subheadline.bold())
-                    .foregroundColor(.black)
+                    .foregroundColor(.primary)
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
@@ -132,7 +132,7 @@ struct HomeView: View {
                 // static when streak is zero or Reduce Motion is enabled
                 ZStack {
                     Circle()
-                        .fill(gamificationViewModel.currentStreak > 0 ? Color.orange.opacity(0.1) : Color.gray.opacity(0.1))
+                        .fill(gamificationViewModel.currentStreak > 0 ? Color.orange.opacity(0.1) : Theme.subtleFill)
                         .frame(width: 60, height: 60)
 
                     Image(systemName: "flame.fill")
@@ -152,23 +152,23 @@ struct HomeView: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(gamificationViewModel.streakStatus)
                         .font(.headline)
-                        .foregroundColor(.black)
+                        .foregroundColor(.primary)
 
                     Text(gamificationViewModel.hasActiveStreakToday ? "Streak active today" : "Swipe to keep your streak!")
                         .font(.caption)
-                        .foregroundColor(.gray)
+                        .foregroundColor(.secondary)
                 }
 
                 Spacer()
 
                 Image(systemName: "chevron.right")
-                    .foregroundColor(.gray)
+                    .foregroundColor(.secondary)
                     .accessibilityHidden(true)
             }
             .padding(16)
-            .background(Color.white)
+            .background(Theme.cardBackground)
             .cornerRadius(16)
-            .shadow(color: .black.opacity(0.05), radius: 5, x: 0, y: 2)
+            .shadow(color: Theme.shadow(opacity: 0.05), radius: 5, x: 0, y: 2)
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(gamificationViewModel.streakStatus). \(gamificationViewModel.hasActiveStreakToday ? "Streak active today" : "Swipe to keep your streak")")
@@ -183,22 +183,22 @@ struct HomeView: View {
                 HStack(spacing: 8) {
                     ZStack {
                         Circle()
-                            .fill(Color.black)
+                            .fill(Theme.solidFill)
                             .frame(width: 40, height: 40)
 
                         Text("\(gamificationViewModel.currentLevel.localized)")
                             .font(.headline.bold())
-                            .foregroundColor(.white)
+                            .foregroundColor(Theme.solidFillForeground)
                     }
 
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Level \(gamificationViewModel.currentLevel.localized)")
                             .font(.headline)
-                            .foregroundColor(.black)
+                            .foregroundColor(.primary)
 
                         Text(gamificationViewModel.levelTitle)
                             .font(.caption)
-                            .foregroundColor(.gray)
+                            .foregroundColor(.secondary)
                     }
                 }
 
@@ -207,7 +207,7 @@ struct HomeView: View {
                 // XP display
                 Text(gamificationViewModel.formattedXP)
                     .font(.subheadline.bold())
-                    .foregroundColor(.black)
+                    .foregroundColor(.primary)
             }
 
             // Progress bar
@@ -215,10 +215,10 @@ struct HomeView: View {
                 GeometryReader { geometry in
                     ZStack(alignment: .leading) {
                         RoundedRectangle(cornerRadius: 4)
-                            .fill(Color.gray.opacity(0.2))
+                            .fill(Theme.subtleFillStrong)
 
                         RoundedRectangle(cornerRadius: 4)
-                            .fill(Color.black)
+                            .fill(Theme.solidFill)
                             .frame(width: geometry.size.width * gamificationViewModel.levelProgress)
                     }
                 }
@@ -228,16 +228,16 @@ struct HomeView: View {
                 HStack {
                     Text("\(gamificationViewModel.xpToNextLevel.localized) XP to next level")
                         .font(.caption)
-                        .foregroundColor(.gray)
+                        .foregroundColor(.secondary)
 
                     Spacer()
                 }
             }
         }
         .padding(16)
-        .background(Color.white)
+        .background(Theme.cardBackground)
         .cornerRadius(16)
-        .shadow(color: .black.opacity(0.05), radius: 5, x: 0, y: 2)
+        .shadow(color: Theme.shadow(opacity: 0.05), radius: 5, x: 0, y: 2)
         // Combine entire card into one VoiceOver element
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Level \(gamificationViewModel.currentLevel), \(gamificationViewModel.levelTitle). \(gamificationViewModel.formattedXP). \(gamificationViewModel.xpToNextLevel) XP to next level. \(Int(gamificationViewModel.levelProgress * 100)) percent progress.")
@@ -281,18 +281,18 @@ struct HomeView: View {
 
             Text(value)
                 .font(.title3.bold())
-                .foregroundColor(.black)
+                .foregroundColor(.primary)
                 .minimumScaleFactor(0.7)
 
             Text(label)
                 .font(.caption)
-                .foregroundColor(.gray)
+                .foregroundColor(.secondary)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 16)
-        .background(Color.white)
+        .background(Theme.cardBackground)
         .cornerRadius(12)
-        .shadow(color: .black.opacity(0.05), radius: 5, x: 0, y: 2)
+        .shadow(color: Theme.shadow(opacity: 0.05), radius: 5, x: 0, y: 2)
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(value) \(label)")
     }
@@ -304,23 +304,23 @@ struct HomeView: View {
             // Large app icon / illustration
             ZStack {
                 Circle()
-                    .fill(Color.black.opacity(0.05))
+                    .fill(Theme.illustrationCircle)
                     .frame(width: 120, height: 120)
 
                 Image(systemName: "hand.draw.fill")
                     .font(.system(size: 50))
-                    .foregroundColor(.black)
+                    .foregroundColor(.primary)
             }
 
             // Headline
             Text("Start Your First Session")
                 .font(.title2.bold())
-                .foregroundColor(.black)
+                .foregroundColor(.primary)
 
             // Description
             Text("Swipe through your emails to unsubscribe from newsletters you no longer read. Earn points, level up, and build a streak!")
                 .font(.subheadline)
-                .foregroundColor(.gray)
+                .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 16)
 
@@ -334,9 +334,9 @@ struct HomeView: View {
         }
         .padding(32)
         .frame(maxWidth: .infinity)
-        .background(Color.white)
+        .background(Theme.cardBackground)
         .cornerRadius(20)
-        .shadow(color: .black.opacity(0.08), radius: 10, x: 0, y: 5)
+        .shadow(color: Theme.shadow(opacity: 0.08), radius: 10, x: 0, y: 5)
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Start your first session. Swipe right to keep emails, swipe left to unsubscribe. Earn points with every decision.")
     }
@@ -351,7 +351,7 @@ struct HomeView: View {
 
             Text(text)
                 .font(.subheadline)
-                .foregroundColor(.black)
+                .foregroundColor(.primary)
         }
     }
 
@@ -360,22 +360,22 @@ struct HomeView: View {
         VStack(spacing: 12) {
             Image(systemName: "hand.draw.fill")
                 .font(.largeTitle)
-                .foregroundColor(.black)
+                .foregroundColor(.primary)
 
             Text("Ready to clean your inbox?")
                 .font(.headline)
-                .foregroundColor(.black)
+                .foregroundColor(.primary)
 
             Text("Swipe through emails with unsubscribe options")
                 .font(.caption)
-                .foregroundColor(.gray)
+                .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
         }
         .padding(24)
         .frame(maxWidth: .infinity)
         .background(
             LinearGradient(
-                colors: [Color.gray.opacity(0.05), Color.gray.opacity(0.1)],
+                colors: [Theme.subtleFill.opacity(0.5), Theme.subtleFill],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
@@ -383,7 +383,7 @@ struct HomeView: View {
         .cornerRadius(16)
         .overlay(
             RoundedRectangle(cornerRadius: 16)
-                .stroke(Color.black, lineWidth: 2)
+                .stroke(Theme.cardBorder, lineWidth: 2)
         )
     }
 
@@ -393,14 +393,14 @@ struct HomeView: View {
             HStack {
                 Text("Recent Achievements")
                     .font(.headline)
-                    .foregroundColor(.black)
+                    .foregroundColor(.primary)
 
                 Spacer()
 
                 NavigationLink(destination: AchievementsGalleryView()) {
                     Text("View All")
                         .font(.caption)
-                        .foregroundColor(.gray)
+                        .foregroundColor(.secondary)
                 }
             }
 
@@ -415,9 +415,9 @@ struct HomeView: View {
             }
         }
         .padding(16)
-        .background(Color.white)
+        .background(Theme.cardBackground)
         .cornerRadius(16)
-        .shadow(color: .black.opacity(0.05), radius: 5, x: 0, y: 2)
+        .shadow(color: Theme.shadow(opacity: 0.05), radius: 5, x: 0, y: 2)
     }
 
     /// Small achievement badge — combined for VoiceOver
@@ -425,14 +425,14 @@ struct HomeView: View {
         VStack(spacing: 6) {
             Image(systemName: achievement.iconName)
                 .font(.title2)
-                .foregroundColor(.black)
+                .foregroundColor(.primary)
                 .frame(width: 50, height: 50)
-                .background(Color.gray.opacity(0.1))
+                .background(Theme.subtleFill)
                 .cornerRadius(12)
 
             Text(achievement.title)
                 .font(.caption2)
-                .foregroundColor(.gray)
+                .foregroundColor(.secondary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
         }
@@ -464,4 +464,15 @@ struct HomeView: View {
         .environmentObject(authVM)
         .environmentObject(GamificationViewModel())
         .modelContainer(PersistenceController.preview.container)
+}
+
+#Preview("Home View - Dark") {
+    let authVM = AuthViewModel()
+    authVM.authState = .authenticated
+
+    return HomeView()
+        .environmentObject(authVM)
+        .environmentObject(GamificationViewModel())
+        .modelContainer(PersistenceController.preview.container)
+        .preferredColorScheme(.dark)
 }

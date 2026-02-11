@@ -76,7 +76,7 @@ struct StatsView: View {
         VStack(spacing: 16) {
             Text("Lifetime Stats")
                 .font(.headline)
-                .foregroundColor(.black)
+                .foregroundColor(.primary)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
             HStack(spacing: 16) {
@@ -114,9 +114,9 @@ struct StatsView: View {
             }
         }
         .padding(16)
-        .background(Color.white)
+        .background(Theme.cardBackground)
         .cornerRadius(16)
-        .shadow(color: .black.opacity(0.05), radius: 5, x: 0, y: 2)
+        .shadow(color: Theme.shadow(opacity: 0.05), radius: 5, x: 0, y: 2)
     }
 
     /// Single stat item — combined into one VoiceOver element
@@ -124,7 +124,7 @@ struct StatsView: View {
         value: String,
         label: String,
         icon: String,
-        color: Color = .black
+        color: Color = .primary
     ) -> some View {
         HStack(spacing: 12) {
             Image(systemName: icon)
@@ -135,18 +135,18 @@ struct StatsView: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(value)
                     .font(.title3.bold())
-                    .foregroundColor(.black)
+                    .foregroundColor(.primary)
                     .minimumScaleFactor(0.7)
 
                 Text(label)
                     .font(.caption)
-                    .foregroundColor(.gray)
+                    .foregroundColor(.secondary)
             }
 
             Spacer()
         }
         .padding(12)
-        .background(Color.gray.opacity(0.05))
+        .background(Theme.subtleFill)
         .cornerRadius(12)
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(value) \(label)")
@@ -158,7 +158,7 @@ struct StatsView: View {
             HStack {
                 Text("This Week")
                     .font(.headline)
-                    .foregroundColor(.black)
+                    .foregroundColor(.primary)
 
                 // Week-over-week trend indicator — shows the percentage change
                 // compared to the previous 7 days. Only displayed when there
@@ -171,7 +171,7 @@ struct StatsView: View {
 
                 Text("\(viewModel.weeklyTotal.localized) emails")
                     .font(.subheadline)
-                    .foregroundColor(.gray)
+                    .foregroundColor(.secondary)
             }
 
             // Bar chart — provide summary for VoiceOver since bar details are hard to navigate
@@ -208,20 +208,20 @@ struct StatsView: View {
                 VStack(spacing: 8) {
                     Image(systemName: "chart.bar")
                         .font(.largeTitle)
-                        .foregroundColor(.gray)
+                        .foregroundColor(.secondary)
 
                     Text("No activity this week")
                         .font(.subheadline)
-                        .foregroundColor(.gray)
+                        .foregroundColor(.secondary)
                 }
                 .frame(height: 200)
                 .frame(maxWidth: .infinity)
             }
         }
         .padding(16)
-        .background(Color.white)
+        .background(Theme.cardBackground)
         .cornerRadius(16)
-        .shadow(color: .black.opacity(0.05), radius: 5, x: 0, y: 2)
+        .shadow(color: Theme.shadow(opacity: 0.05), radius: 5, x: 0, y: 2)
     }
 
     /// Compact badge showing a week-over-week percentage change.
@@ -256,7 +256,7 @@ struct StatsView: View {
 
             Text(label)
                 .font(.caption)
-                .foregroundColor(.gray)
+                .foregroundColor(.secondary)
         }
     }
 
@@ -265,7 +265,7 @@ struct StatsView: View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Decision Ratio")
                 .font(.headline)
-                .foregroundColor(.black)
+                .foregroundColor(.primary)
 
             if viewModel.totalEmails > 0 {
                 HStack(spacing: 24) {
@@ -284,11 +284,11 @@ struct StatsView: View {
                         VStack(spacing: 0) {
                             Text("\(Int(viewModel.unsubscribeRate))%")
                                 .font(.title3.bold())
-                                .foregroundColor(.black)
+                                .foregroundColor(.primary)
 
                             Text("unsub")
                                 .font(.caption2)
-                                .foregroundColor(.gray)
+                                .foregroundColor(.secondary)
                         }
                     }
                     .accessibilityElement(children: .ignore)
@@ -316,20 +316,20 @@ struct StatsView: View {
                 VStack(spacing: 8) {
                     Image(systemName: "chart.pie")
                         .font(.largeTitle)
-                        .foregroundColor(.gray)
+                        .foregroundColor(.secondary)
 
                     Text("No decisions yet")
                         .font(.subheadline)
-                        .foregroundColor(.gray)
+                        .foregroundColor(.secondary)
                 }
                 .frame(height: 100)
                 .frame(maxWidth: .infinity)
             }
         }
         .padding(16)
-        .background(Color.white)
+        .background(Theme.cardBackground)
         .cornerRadius(16)
-        .shadow(color: .black.opacity(0.05), radius: 5, x: 0, y: 2)
+        .shadow(color: Theme.shadow(opacity: 0.05), radius: 5, x: 0, y: 2)
     }
 
     /// Ratio breakdown row
@@ -341,17 +341,17 @@ struct StatsView: View {
 
             Text(label)
                 .font(.subheadline)
-                .foregroundColor(.black)
+                .foregroundColor(.primary)
 
             Spacer()
 
             Text("\(value.localized)")
                 .font(.subheadline.bold())
-                .foregroundColor(.black)
+                .foregroundColor(.primary)
 
             Text("(\(Int(percentage))%)")
                 .font(.caption)
-                .foregroundColor(.gray)
+                .foregroundColor(.secondary)
         }
     }
 
@@ -360,7 +360,7 @@ struct StatsView: View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Recent Sessions")
                 .font(.headline)
-                .foregroundColor(.black)
+                .foregroundColor(.primary)
 
             if !viewModel.recentSessions.isEmpty {
                 ForEach(viewModel.recentSessions) { session in
@@ -375,20 +375,20 @@ struct StatsView: View {
                 VStack(spacing: 8) {
                     Image(systemName: "clock")
                         .font(.largeTitle)
-                        .foregroundColor(.gray)
+                        .foregroundColor(.secondary)
 
                     Text("No sessions yet")
                         .font(.subheadline)
-                        .foregroundColor(.gray)
+                        .foregroundColor(.secondary)
                 }
                 .frame(height: 100)
                 .frame(maxWidth: .infinity)
             }
         }
         .padding(16)
-        .background(Color.white)
+        .background(Theme.cardBackground)
         .cornerRadius(16)
-        .shadow(color: .black.opacity(0.05), radius: 5, x: 0, y: 2)
+        .shadow(color: Theme.shadow(opacity: 0.05), radius: 5, x: 0, y: 2)
     }
 
     /// Single session row — combined as one VoiceOver element
@@ -398,11 +398,11 @@ struct StatsView: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(session.date.formatted(date: .abbreviated, time: .omitted))
                     .font(.subheadline)
-                    .foregroundColor(.black)
+                    .foregroundColor(.primary)
 
                 Text(session.date.formatted(date: .omitted, time: .shortened))
                     .font(.caption)
-                    .foregroundColor(.gray)
+                    .foregroundColor(.secondary)
             }
 
             Spacer()
@@ -415,7 +415,7 @@ struct StatsView: View {
                         .font(.caption)
                     Text("\(session.unsubscribeCount.localized)")
                         .font(.subheadline)
-                        .foregroundColor(.black)
+                        .foregroundColor(.primary)
                 }
 
                 HStack(spacing: 4) {
@@ -424,7 +424,7 @@ struct StatsView: View {
                         .font(.caption)
                     Text("\(session.keepCount.localized)")
                         .font(.subheadline)
-                        .foregroundColor(.black)
+                        .foregroundColor(.primary)
                 }
             }
 
@@ -454,4 +454,10 @@ struct StatsView: View {
 #Preview("Stats View") {
     StatsView()
         .modelContainer(PersistenceController.preview.container)
+}
+
+#Preview("Stats View - Dark") {
+    StatsView()
+        .modelContainer(PersistenceController.preview.container)
+        .preferredColorScheme(.dark)
 }

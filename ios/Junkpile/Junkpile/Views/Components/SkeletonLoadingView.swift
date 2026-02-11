@@ -46,7 +46,7 @@ struct SkeletonLoadingView: View {
             // Loading text
             Text("Fetching your emails...")
                 .font(.headline)
-                .foregroundColor(.gray)
+                .foregroundColor(.secondary)
                 .padding(.bottom, 20)
         }
         .accessibilityElement(children: .ignore)
@@ -58,7 +58,7 @@ struct SkeletonLoadingView: View {
     /// Creates a rounded rectangle placeholder with the given dimensions.
     private func skeletonRect(width: CGFloat, height: CGFloat, cornerRadius: CGFloat = 4) -> some View {
         RoundedRectangle(cornerRadius: cornerRadius)
-            .fill(Color.gray.opacity(0.15))
+            .fill(Theme.subtleFill)
             .frame(maxWidth: width == .infinity ? .infinity : width, alignment: .leading)
             .frame(width: width == .infinity ? nil : width)
             .frame(height: height)
