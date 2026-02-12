@@ -21,16 +21,15 @@ final class GoogleAuthService: NSObject, ObservableObject {
 
     // MARK: - Configuration
 
-    /// Google OAuth client ID (configured in Google Cloud Console)
-    /// TODO: Replace with your actual client ID
-    private let clientId = "YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com"
+    /// Google OAuth client ID — sourced from centralized AppConfig
+    private let clientId = AppConfig.googleClientID
 
-    /// Redirect URI scheme (must match URL Types in Info.plist)
-    private let redirectScheme = "com.junkpile.app"
+    /// Redirect URI scheme (must match URL Types in Info.plist) — sourced from AppConfig
+    private let redirectScheme = AppConfig.oauthRedirectScheme
 
-    /// Redirect URI (full URL)
+    /// Redirect URI (full URL) — sourced from AppConfig
     private var redirectUri: String {
-        return "\(redirectScheme):/oauth2callback"
+        return AppConfig.oauthRedirectURI
     }
 
     /// Scopes required for Gmail access
@@ -189,6 +188,133 @@ final class GoogleAuthService: NSObject, ObservableObject {
 
         // Extract the code parameter
         return components?.queryItems?.first(where: { $0.name == "code" })?.value
+    }
+
+    // MARK: - Gmail-Only Connection (Two-Step Auth Flow)
+
+    /// Scopes for Gmail-only access (no email/profile identity scopes).
+    /// Used in the two-step flow where Apple handles identity and Google
+    /// provides only Gmail API access.
+    private let gmailOnlyScopes = [
+        "https://www.googleapis.com/auth/gmail.readonly",
+        "https://www.googleapis.com/auth/gmail.modify"
+    ]
+
+    /// Connects Gmail for an Apple Sign-In user (two-step auth flow).
+    /// Performs the same OAuth flow as signIn() but:
+    /// - Uses only Gmail scopes (no email/profile — identity comes from Apple)
+    /// - Sends the auth code to /api/auth/connect-gmail instead of /api/auth/mobile
+    /// - Does NOT update identity info in Keychain (email/name stay from Apple)
+    ///
+    /// - Parameter presentationAnchor: The window to present the auth sheet from
+    /// - Returns: True if Gmail was successfully connected
+    func connectGmailOnly(presentationAnchor: ASPresentationAnchor) async throws -> Bool {
+        guard !isAuthenticating else {
+            throw GoogleAuthError.authenticationInProgress
+        }
+
+        isAuthenticating = true
+        errorMessage = nil
+
+        defer {
+            isAuthenticating = false
+        }
+
+        do {
+            // Build a Gmail-only OAuth URL (no email/profile scopes)
+            let authUrl = buildGmailOnlyAuthorizationUrl()
+
+            // Perform the OAuth flow using the Gmail-only URL
+            let authCode = try await performOAuthFlowWithUrl(authUrl)
+
+            // Exchange the code via the connect-gmail endpoint (not /api/auth/mobile)
+            let response = try await apiService.connectGmail(authCode)
+
+            guard response.success else {
+                let error = response.error ?? "Unknown error connecting Gmail"
+                errorMessage = error
+                throw GoogleAuthError.tokenExchangeFailed(error)
+            }
+
+            // Store the Gmail OAuth tokens in Keychain for direct API use
+            if let accessToken = response.accessToken,
+               let expiresIn = response.expiresIn {
+                keychain.setAccessToken(accessToken)
+                let expiryDate = Date().addingTimeInterval(TimeInterval(expiresIn))
+                keychain.setTokenExpiry(expiryDate)
+            }
+            if let refreshToken = response.refreshToken {
+                keychain.setRefreshToken(refreshToken)
+            }
+
+            return true
+
+        } catch let error as GoogleAuthError {
+            errorMessage = error.localizedDescription
+            throw error
+        } catch {
+            errorMessage = error.localizedDescription
+            throw GoogleAuthError.networkError(error.localizedDescription)
+        }
+    }
+
+    /// Builds an OAuth URL requesting only Gmail scopes (no identity scopes).
+    /// Used for the two-step flow where Apple handles identity.
+    private func buildGmailOnlyAuthorizationUrl() -> URL {
+        var components = URLComponents(string: "https://accounts.google.com/o/oauth2/v2/auth")!
+
+        components.queryItems = [
+            URLQueryItem(name: "client_id", value: clientId),
+            URLQueryItem(name: "redirect_uri", value: redirectUri),
+            URLQueryItem(name: "response_type", value: "code"),
+            URLQueryItem(name: "scope", value: gmailOnlyScopes.joined(separator: " ")),
+            URLQueryItem(name: "access_type", value: "offline"),
+            URLQueryItem(name: "prompt", value: "consent"),
+            URLQueryItem(name: "include_granted_scopes", value: "true")
+        ]
+
+        return components.url!
+    }
+
+    /// Performs the OAuth flow with a given URL.
+    /// Shared between signIn() and connectGmailOnly() to avoid code duplication.
+    /// - Parameter authUrl: The OAuth authorization URL to open
+    /// - Returns: The authorization code from Google
+    private func performOAuthFlowWithUrl(_ authUrl: URL) async throws -> String {
+        return try await withCheckedThrowingContinuation { continuation in
+            let session = ASWebAuthenticationSession(
+                url: authUrl,
+                callbackURLScheme: redirectScheme
+            ) { callbackUrl, error in
+                if let error = error as? ASWebAuthenticationSessionError,
+                   error.code == .canceledLogin {
+                    continuation.resume(throwing: GoogleAuthError.userCancelled)
+                    return
+                }
+
+                if let error = error {
+                    continuation.resume(throwing: GoogleAuthError.sessionError(error.localizedDescription))
+                    return
+                }
+
+                guard let callbackUrl = callbackUrl,
+                      let code = self.extractAuthorizationCode(from: callbackUrl) else {
+                    continuation.resume(throwing: GoogleAuthError.invalidCallback)
+                    return
+                }
+
+                continuation.resume(returning: code)
+            }
+
+            session.presentationContextProvider = self
+            session.prefersEphemeralWebBrowserSession = false
+
+            self.authSession = session
+
+            if !session.start() {
+                continuation.resume(throwing: GoogleAuthError.sessionStartFailed)
+            }
+        }
     }
 
     // MARK: - Sign Out

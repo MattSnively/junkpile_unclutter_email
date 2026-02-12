@@ -1,7 +1,8 @@
 import SwiftUI
 
 /// OnboardingView is the main entry point for unauthenticated users.
-/// Guides users through the app introduction and Google sign-in process.
+/// Guides users through the app introduction and sign-in process.
+/// Presents both Apple and Google sign-in options via SignInView.
 struct OnboardingView: View {
 
     // MARK: - Environment
@@ -48,7 +49,7 @@ struct OnboardingView: View {
             }
         }
         .sheet(isPresented: $showSignIn) {
-            GoogleSignInView()
+            SignInView()
         }
     }
 
@@ -109,7 +110,7 @@ struct OnboardingView: View {
                 .cornerRadius(12)
         }
         .accessibilityLabel(currentPage < 1 ? "Next" : "Get Started")
-        .accessibilityHint(currentPage < 1 ? "Go to next onboarding page" : "Sign in with Google to start using Junkpile")
+        .accessibilityHint(currentPage < 1 ? "Go to next onboarding page" : "Sign in to start using Junkpile")
     }
 }
 

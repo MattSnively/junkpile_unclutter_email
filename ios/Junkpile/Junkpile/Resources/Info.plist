@@ -36,8 +36,8 @@
 			<array>
 				<!-- Custom URL scheme for OAuth redirect -->
 				<string>com.junkpile.app</string>
-				<!-- Google Sign-In reversed client ID (update with your actual client ID) -->
-				<string>com.googleusercontent.apps.YOUR_CLIENT_ID</string>
+				<!-- Google Sign-In reversed client ID (matches AppConfig.googleReversedClientID) -->
+				<string>com.googleusercontent.apps.758350179240-fjqmnjskeagiekciefleb11ntn8ui26e</string>
 			</array>
 		</dict>
 	</array>
@@ -64,17 +64,16 @@
 	</array>
 
 	<!-- App Transport Security -->
+	<!-- No exceptions needed: Release builds use HTTPS via AppConfig.apiBaseURL. -->
+	<!-- For local development (Debug builds), add NSAllowsLocalNetworking in -->
+	<!-- your Debug.xcconfig or Xcode build settings if needed for simulator. -->
 	<key>NSAppTransportSecurity</key>
 	<dict>
-		<!-- Allow localhost for development -->
-		<key>NSExceptionDomains</key>
-		<dict>
-			<key>localhost</key>
-			<dict>
-				<key>NSExceptionAllowsInsecureHTTPLoads</key>
-				<true/>
-			</dict>
-		</dict>
+		<!-- Allow local networking (localhost/127.0.0.1) in all builds.        -->
+		<!-- This is safe for App Store review — it only affects on-device      -->
+		<!-- loopback connections, not arbitrary HTTP. Apple allows this.         -->
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
 	</dict>
 
 	<!-- Privacy Descriptions -->

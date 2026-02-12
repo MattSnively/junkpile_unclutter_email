@@ -289,6 +289,41 @@ struct UserFacingError: Equatable {
     }
 }
 
+// MARK: - Apple Auth Models
+
+/// Response from the /api/auth/apple endpoint (Apple Sign-In token exchange).
+/// Returns a server-issued session token that the app uses as its Bearer token
+/// for subsequent API calls, along with basic user info.
+struct AppleAuthResponse: Codable {
+    let success: Bool
+    let sessionToken: String?
+    let userId: String?
+    let email: String?
+    let name: String?
+    let error: String?
+}
+
+/// Response from the /api/auth/connect-gmail endpoint.
+/// After an Apple Sign-In user connects Gmail, returns the Gmail OAuth tokens
+/// and the Gmail email address for display in the UI.
+struct ConnectGmailResponse: Codable {
+    let success: Bool
+    let email: String?
+    let accessToken: String?
+    let refreshToken: String?
+    let expiresIn: Int?
+    let error: String?
+
+    enum CodingKeys: String, CodingKey {
+        case success
+        case email
+        case accessToken = "access_token"
+        case refreshToken = "refresh_token"
+        case expiresIn = "expires_in"
+        case error
+    }
+}
+
 // MARK: - User Info
 
 /// User information from Google OAuth

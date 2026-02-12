@@ -15,13 +15,18 @@ final class KeychainService {
     /// Service identifier for Keychain items (bundle ID based)
     private let serviceIdentifier = "com.junkpile.app"
 
-    /// Keys for different stored values
+    /// Keys for different stored values.
+    /// Original keys (accessToken through userName) store Google/Gmail OAuth data.
+    /// Apple-specific keys track the identity provider and Apple user state.
     private enum Key: String {
         case accessToken = "access_token"
         case refreshToken = "refresh_token"
         case tokenExpiry = "token_expiry"
         case userEmail = "user_email"
         case userName = "user_name"
+        case authProvider = "auth_provider"              // "apple" or "google"
+        case appleUserIdentifier = "apple_user_id"       // Apple's stable user ID (sub claim)
+        case serverSessionToken = "server_session_token"  // Server-issued JWT for Apple users
     }
 
     // MARK: - Initialization
@@ -118,6 +123,57 @@ final class KeychainService {
         return get(forKey: Key.userName.rawValue)
     }
 
+    // MARK: - Auth Provider Storage
+
+    /// Stores which authentication provider was used for sign-in.
+    /// - Parameter provider: The auth provider (apple or google)
+    /// - Returns: True if storage was successful
+    @discardableResult
+    func setAuthProvider(_ provider: AuthProvider) -> Bool {
+        return set(provider.rawValue, forKey: Key.authProvider.rawValue)
+    }
+
+    /// Retrieves the stored authentication provider.
+    /// - Returns: The auth provider if stored, nil otherwise
+    func getAuthProvider() -> AuthProvider? {
+        guard let rawValue = get(forKey: Key.authProvider.rawValue) else {
+            return nil
+        }
+        return AuthProvider(rawValue: rawValue)
+    }
+
+    // MARK: - Apple Sign-In Storage
+
+    /// Stores the Apple user identifier (the `sub` claim from Apple's identity token).
+    /// This is a stable identifier that persists across sign-in sessions.
+    /// - Parameter identifier: Apple's user identifier string
+    /// - Returns: True if storage was successful
+    @discardableResult
+    func setAppleUserIdentifier(_ identifier: String) -> Bool {
+        return set(identifier, forKey: Key.appleUserIdentifier.rawValue)
+    }
+
+    /// Retrieves the stored Apple user identifier.
+    /// - Returns: The Apple user identifier if stored, nil otherwise
+    func getAppleUserIdentifier() -> String? {
+        return get(forKey: Key.appleUserIdentifier.rawValue)
+    }
+
+    /// Stores the server-issued session token (JWT) for Apple Sign-In users.
+    /// This token is used as the Bearer token for API requests instead of a Google access token.
+    /// - Parameter token: The server session token
+    /// - Returns: True if storage was successful
+    @discardableResult
+    func setServerSessionToken(_ token: String) -> Bool {
+        return set(token, forKey: Key.serverSessionToken.rawValue)
+    }
+
+    /// Retrieves the stored server session token.
+    /// - Returns: The server session token if stored, nil otherwise
+    func getServerSessionToken() -> String? {
+        return get(forKey: Key.serverSessionToken.rawValue)
+    }
+
     // MARK: - Bulk Operations
 
     /// Stores all authentication tokens and user info at once.
@@ -147,17 +203,34 @@ final class KeychainService {
     }
 
     /// Clears all stored authentication data (for logout).
+    /// Removes both Google OAuth tokens and Apple Sign-In data.
     func clearAllAuthData() {
+        // Google/Gmail tokens
         delete(forKey: Key.accessToken.rawValue)
         delete(forKey: Key.refreshToken.rawValue)
         delete(forKey: Key.tokenExpiry.rawValue)
+        // User identity info
         delete(forKey: Key.userEmail.rawValue)
         delete(forKey: Key.userName.rawValue)
+        // Provider tracking
+        delete(forKey: Key.authProvider.rawValue)
+        // Apple-specific
+        delete(forKey: Key.appleUserIdentifier.rawValue)
+        delete(forKey: Key.serverSessionToken.rawValue)
     }
 
-    /// Checks if user credentials are stored.
-    /// - Returns: True if access token exists
+    /// Checks if any user credentials are stored (either Google or Apple).
+    /// For Google users: checks for a Google access token.
+    /// For Apple users: checks for a server session token (they may not have Gmail connected yet).
+    /// - Returns: True if either Google access token or Apple session token exists
     func hasStoredCredentials() -> Bool {
+        return getAccessToken() != nil || getServerSessionToken() != nil
+    }
+
+    /// Checks specifically for Gmail OAuth credentials (Google access token).
+    /// Apple Sign-In users may be authenticated but not have Gmail connected.
+    /// - Returns: True if a Google/Gmail access token exists
+    func hasGmailCredentials() -> Bool {
         return getAccessToken() != nil
     }
 
