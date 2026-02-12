@@ -18,6 +18,11 @@ client_secret*.json
 # OS files
 .DS_Store
 Thumbs.db
+nul
+__MACOSX/
+
+# Claude Code
+.claude/
 
 # Logs
 *.log

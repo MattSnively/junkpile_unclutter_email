@@ -38,8 +38,12 @@ struct JunkpileApp: App {
     }
 }
 
-/// RootView handles the top-level navigation between onboarding and main app.
-/// Shows onboarding if not authenticated, main tab view otherwise.
+/// RootView handles the top-level navigation between onboarding, Gmail connection, and main app.
+/// Navigation flow:
+/// - .unknown → SplashView (validating credentials)
+/// - .unauthenticated → OnboardingView (sign in with Apple or Google)
+/// - .authenticated + needsGmailConnection → ConnectGmailView (Apple users, step 2)
+/// - .authenticated + Gmail connected → MainTabView (full app)
 struct RootView: View {
 
     @EnvironmentObject var authViewModel: AuthViewModel
@@ -52,8 +56,14 @@ struct RootView: View {
                 // to prevent the onboarding view from flashing briefly
                 SplashView()
             case .authenticated:
-                // User is authenticated, show main app
-                MainTabView()
+                if authViewModel.needsGmailConnection {
+                    // Apple Sign-In users who haven't connected Gmail yet
+                    // see the Gmail connection interstitial before the main app
+                    ConnectGmailView()
+                } else {
+                    // User is fully set up — show main app
+                    MainTabView()
+                }
             case .unauthenticated:
                 // User needs to authenticate
                 OnboardingView()

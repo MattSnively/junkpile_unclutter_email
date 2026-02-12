@@ -25,10 +25,11 @@ final class APIService {
 
     /// Private initializer to enforce singleton pattern
     private init() {
-        // Configure base URL from environment or use default
-        // In production, this should point to your server
-        self.baseURL = ProcessInfo.processInfo.environment["API_BASE_URL"]
-            ?? "http://localhost:3000"
+        // Base URL is determined by AppConfig:
+        // - Debug builds → localhost for simulator testing
+        // - Release builds → production HTTPS endpoint
+        // - Can be overridden via API_BASE_URL environment variable
+        self.baseURL = AppConfig.apiBaseURL
 
         // Configure URL session with reasonable timeouts
         let config = URLSessionConfiguration.default
@@ -109,6 +110,58 @@ final class APIService {
         return try await get(endpoint, authenticated: false)
     }
 
+    // MARK: - Apple Authentication Endpoints
+
+    /// Exchanges an Apple identity token for a server session token.
+    /// Called after the iOS app completes Sign in with Apple.
+    ///
+    /// - Parameters:
+    ///   - identityToken: The JWT identity token from Apple Sign-In
+    ///   - authorizationCode: The authorization code from Apple (optional)
+    ///   - email: User's email (only provided on first sign-in)
+    ///   - fullName: User's full name (only provided on first sign-in)
+    /// - Returns: AppleAuthResponse with server session token on success
+    func exchangeAppleToken(
+        identityToken: String,
+        authorizationCode: String?,
+        email: String?,
+        fullName: String?
+    ) async throws -> AppleAuthResponse {
+        let endpoint = "/api/auth/apple"
+        var body: [String: Any] = [
+            "identityToken": identityToken,
+            "platform": "ios"
+        ]
+        if let authorizationCode = authorizationCode {
+            body["authorizationCode"] = authorizationCode
+        }
+        if let email = email {
+            body["email"] = email
+        }
+        if let fullName = fullName {
+            body["fullName"] = fullName
+        }
+
+        return try await post(endpoint, body: body, authenticated: false)
+    }
+
+    /// Connects Gmail to an Apple Sign-In user account (two-step auth flow).
+    /// Sends the Google auth code to the backend, which exchanges it for tokens
+    /// and stores them on the user record.
+    ///
+    /// - Parameter code: The authorization code from Google OAuth
+    /// - Returns: ConnectGmailResponse with Gmail tokens and email
+    func connectGmail(_ code: String) async throws -> ConnectGmailResponse {
+        let endpoint = "/api/auth/connect-gmail"
+        let body: [String: Any] = [
+            "code": code,
+            "platform": "ios"
+        ]
+
+        // This endpoint requires the server session token (Apple user's bearer token)
+        return try await post(endpoint, body: body, authenticated: true)
+    }
+
     // MARK: - Email Endpoints
 
     /// Fetches emails with unsubscribe options from the user's Gmail.
@@ -185,20 +238,52 @@ final class APIService {
     // MARK: - Token Management
 
     /// Ensures a valid token is available, refreshing if needed.
+    /// For Google users: checks the Google access token and refreshes if expired.
+    /// For Apple users: checks the server session token exists (it has 7-day expiry
+    /// handled server-side). Gmail token refresh happens via the backend.
     private func ensureValidToken() async throws {
-        // Check if we have a token at all
+        // Check if we have any credentials at all
         guard keychain.hasStoredCredentials() else {
             throw APIError.authenticationRequired
         }
 
-        // Check if token is expired
+        // For Apple users with a server session token, the token validity
+        // is managed server-side. We only need to refresh Gmail tokens.
+        if keychain.getAuthProvider() == .apple {
+            // Apple users: server session token is valid for 7 days.
+            // Gmail token refresh is handled by the backend middleware.
+            guard keychain.getServerSessionToken() != nil else {
+                throw APIError.authenticationRequired
+            }
+            return
+        }
+
+        // For Google users: check if the Google access token is expired
         if keychain.isTokenExpired() {
-            // Try to refresh the token
             let refreshResponse = try await refreshAccessToken()
             if !refreshResponse.success {
                 throw APIError.tokenExpired
             }
         }
+    }
+
+    /// Resolves the Bearer token to use for authenticated requests.
+    /// Apple users use their server session token; Google users use their Google access token.
+    /// - Returns: The appropriate Bearer token string
+    /// - Throws: APIError.authenticationRequired if no token is available
+    private func resolveAuthToken() throws -> String {
+        // For Apple users, prefer the server session token
+        if keychain.getAuthProvider() == .apple,
+           let sessionToken = keychain.getServerSessionToken() {
+            return sessionToken
+        }
+
+        // For Google users (or fallback), use the Google access token
+        if let accessToken = keychain.getAccessToken() {
+            return accessToken
+        }
+
+        throw APIError.authenticationRequired
     }
 
     // MARK: - HTTP Methods
@@ -217,11 +302,9 @@ final class APIService {
         request.httpMethod = "GET"
         request.setValue("application/json", forHTTPHeaderField: "Accept")
 
-        // Add authorization header if authenticated
+        // Add authorization header — uses server session token (Apple) or access token (Google)
         if authenticated {
-            guard let token = keychain.getAccessToken() else {
-                throw APIError.authenticationRequired
-            }
+            let token = try resolveAuthToken()
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
 
@@ -247,11 +330,9 @@ final class APIService {
         // Encode request body
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
 
-        // Add authorization header if authenticated
+        // Add authorization header — uses server session token (Apple) or access token (Google)
         if authenticated {
-            guard let token = keychain.getAccessToken() else {
-                throw APIError.authenticationRequired
-            }
+            let token = try resolveAuthToken()
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
 
@@ -272,11 +353,9 @@ final class APIService {
         request.httpMethod = "DELETE"
         request.setValue("application/json", forHTTPHeaderField: "Accept")
 
-        // Add authorization header if authenticated
+        // Add authorization header — uses server session token (Apple) or access token (Google)
         if authenticated {
-            guard let token = keychain.getAccessToken() else {
-                throw APIError.authenticationRequired
-            }
+            let token = try resolveAuthToken()
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
 

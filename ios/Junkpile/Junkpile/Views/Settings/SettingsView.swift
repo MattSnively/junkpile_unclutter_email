@@ -116,9 +116,19 @@ struct SettingsView: View {
 
                 // User info
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(authViewModel.displayName)
-                        .font(.headline)
-                        .foregroundColor(.primary)
+                    HStack(spacing: 6) {
+                        Text(authViewModel.displayName)
+                            .font(.headline)
+                            .foregroundColor(.primary)
+
+                        // Auth provider badge — shows which sign-in method was used
+                        if let provider = authViewModel.authProvider {
+                            Image(systemName: provider == .apple ? "apple.logo" : "g.circle.fill")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                                .accessibilityLabel(provider == .apple ? "Signed in with Apple" : "Signed in with Google")
+                        }
+                    }
 
                     if let email = authViewModel.userEmail {
                         Text(email)
@@ -507,10 +517,18 @@ struct SettingsView: View {
                 .font(.caption)
 
         case .disconnected:
-            Button("Reconnect") {
+            // Apple users who haven't connected Gmail see "Connect";
+            // Google users who lost their connection see "Reconnect"
+            Button(authViewModel.authProvider == .apple && !authViewModel.isGmailConnected
+                   ? "Connect" : "Reconnect") {
                 Task {
-                    await authViewModel.signIn(from: authViewModel.keyWindow)
-                    // Re-check after sign-in attempt
+                    if authViewModel.authProvider == .apple {
+                        // Apple users connect Gmail via the two-step flow
+                        await authViewModel.connectGmail(from: authViewModel.keyWindow)
+                    } else {
+                        // Google users reconnect via the standard sign-in flow
+                        await authViewModel.signIn(from: authViewModel.keyWindow)
+                    }
                     await checkGmailConnection()
                 }
             }
@@ -537,18 +555,31 @@ struct SettingsView: View {
         }
     }
 
-    /// Checks the actual Gmail connection status by validating the stored OAuth token.
+    /// Checks the actual Gmail connection status.
+    /// For Google users: validates the stored Google access token with the server.
+    /// For Apple users: checks whether Gmail OAuth tokens exist in Keychain.
     /// Called on view appear to provide real-time connection feedback.
     private func checkGmailConnection() async {
         gmailStatus = .checking
 
-        // First check if credentials exist locally
+        // First check if any credentials exist locally
         guard KeychainService.shared.hasStoredCredentials() else {
             gmailStatus = .disconnected
             return
         }
 
-        // Validate the token with the server
+        // For Apple users, Gmail connection is separate from identity
+        if authViewModel.authProvider == .apple {
+            // Check if Gmail credentials specifically exist
+            if KeychainService.shared.hasGmailCredentials() {
+                gmailStatus = .connected
+            } else {
+                gmailStatus = .disconnected
+            }
+            return
+        }
+
+        // For Google users, validate the token with the server (existing behavior)
         do {
             let response = try await APIService.shared.validateToken()
             gmailStatus = response.valid ? .connected : .disconnected
