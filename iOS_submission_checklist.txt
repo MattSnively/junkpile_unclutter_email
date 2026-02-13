@@ -1,0 +1,54 @@
+** iOS Shipping Checklist **
+Here's the ULTIMATE submission checklist ( Bookmark this to ship):
+
+1: App Store Connect Setup
+ 	+ Developer account verified
+ 	+ Tax and banking info complete
+ 	+ Agreements signed
+	+ App ID registered with correct bundle identifier
+
+2: Build Preparation
+	+ Version number follows semantic versioning
+> Build number incremented from last submission
+> All entitlements configured correctly
+> Privacy manifest included (required as of iOS 17)
+
+3: App Store Assets
+> App icon (1024x1024, no alpha channel)
+> Screenshots for all required device sizes
+> App preview videos (optional but helps)
+> App Store description under 4000 characters
+> Keywords optimized (100 character limit)
+
+4: Metadata Compliance
+> Age rating questionnaire completed accurately
+> Privacy policy URL (required for most apps)
+> Support URL active and functional
+> Copyright information filled
+> Category selection aligned with app functionality
+
+5/ Technical Requirements
+> No crashes in production build
+> Tested on physical devices, not just simulator
+> All third-party SDKs updated to latest versions
+> App size optimized (under 200MB for cellular downloads)
+> Dark mode support (if applicable)
+
+6/ Privacy and Permissions
+> Info.plist usage descriptions for all permissions
+> Privacy nutrition label data accurate
+> No tracking without ATT prompt
+> Data collection disclosed properly
+
+7/ Pre-Submission Testing
+> Run through Apple's pre-submission checklist
+> Test all in-app purchases (if applicable)
+> Verify all deep links work
+> Check localizations (if supporting multiple languages)
+> Screenshot all features for app review notes
+
+8/ App Review Preparation
+> Demo account credentials (if app requires login)
+> Clear app review notes explaining non-obvious features
+> Contact information up to date
+> Test device info if hardware-specific features
