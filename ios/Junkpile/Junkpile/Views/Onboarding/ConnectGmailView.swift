@@ -77,6 +77,7 @@ struct ConnectGmailView: View {
             VStack(alignment: .leading, spacing: 8) {
                 permissionRow(icon: "envelope", text: "Read email metadata (sender, subject)")
                 permissionRow(icon: "eye.slash", text: "Mark emails as read")
+                permissionRow(icon: "paperplane", text: "Send unsubscribe requests on your behalf")
             }
 
             Text("We never read your email content, access attachments, or share your data.")
