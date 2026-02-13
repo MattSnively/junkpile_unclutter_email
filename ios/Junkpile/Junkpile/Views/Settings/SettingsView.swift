@@ -328,7 +328,7 @@ struct SettingsView: View {
     private var dataSection: some View {
         Section {
             // View privacy policy — safe URL unwrap to prevent crash
-            if let privacyURL = URL(string: "https://junkpile.app/privacy") {
+            if let privacyURL = URL(string: "https://mattsnively.github.io/junkpile_unclutter_email/privacy.html") {
                 Link(destination: privacyURL) {
                     HStack {
                         Image(systemName: "hand.raised.fill")
@@ -346,7 +346,7 @@ struct SettingsView: View {
             }
 
             // View terms of service — safe URL unwrap to prevent crash
-            if let termsURL = URL(string: "https://junkpile.app/terms") {
+            if let termsURL = URL(string: "https://mattsnively.github.io/junkpile_unclutter_email/terms.html") {
                 Link(destination: termsURL) {
                     HStack {
                         Image(systemName: "doc.text.fill")
