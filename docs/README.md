@@ -15,7 +15,7 @@ This directory contains the Privacy Policy and Terms of Service for the Junkpile
 2. **Enable GitHub Pages:**
    - Go to repository Settings → Pages
    - Source: Deploy from a branch
-   - Branch: `main`, Folder: `/web`
+   - Branch: `main`, Folder: `/docs`
    - Save
 
 3. **Your URLs will be:**
@@ -52,13 +52,13 @@ If you own `junkpile.app`:
 
 **Netlify (Free):**
 1. Sign up at https://netlify.com
-2. Drag and drop this `web` folder
+2. Drag and drop this `docs` folder
 3. Get instant URLs like `https://junkpile-legal.netlify.app/privacy.html`
 
 **Vercel (Free):**
 1. Sign up at https://vercel.com
 2. Connect your GitHub repo
-3. Deploy the `/web` directory
+3. Deploy the `/docs` directory
 
 ## Important: Update These Placeholders
 
@@ -80,7 +80,7 @@ Before publishing, update these placeholder values in both HTML files:
 When you update the legal documents:
 
 1. Update the markdown files (`PRIVACY_POLICY.md` and `TERMS_OF_SERVICE.md`)
-2. Update the HTML files (`web/privacy.html` and `web/terms.html`)
+2. Update the HTML files (`docs/privacy.html` and `docs/terms.html`)
 3. Update the "Last Updated" date in all files
 4. **Notify users** via in-app notification if changes are material
 5. Re-deploy to your hosting service
