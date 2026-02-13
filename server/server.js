@@ -514,7 +514,8 @@ app.get('/api/auth/url', (req, res) => {
         access_type: 'offline',
         scope: [
             'https://www.googleapis.com/auth/gmail.readonly',
-            'https://www.googleapis.com/auth/gmail.modify'
+            'https://www.googleapis.com/auth/gmail.modify',
+            'https://www.googleapis.com/auth/gmail.send'      // Required for mailto-based unsubscribe
         ]
     });
 
@@ -593,15 +594,17 @@ app.post('/api/decision', authenticateRequest, async (req, res) => {
             });
         }
 
-        // If unsubscribe, process it using tokens from middleware
+        // If unsubscribe, execute the actual unsubscribe via cascade
+        // (RFC 8058 one-click → HTTP header URLs → HTTP body URL → mailto fallback)
+        let unsubResult = null;
         if (decision === 'unsubscribe' && req.authTokens) {
             oauth2Client.setCredentials(req.authTokens);
             const gmailService = new GmailService(oauth2Client);
 
-            // Get the email to find unsubscribe URL
+            // Get the email to find all unsubscribe data (headers + body)
             const emailDetails = await gmailService.getEmailDetails(emailId);
-            if (emailDetails && emailDetails.unsubscribeUrl) {
-                await gmailService.unsubscribe(emailId, emailDetails.unsubscribeUrl);
+            if (emailDetails && emailDetails.unsubscribeData) {
+                unsubResult = await gmailService.unsubscribe(emailId, emailDetails.unsubscribeData);
             }
         }
 
@@ -621,19 +624,28 @@ app.post('/api/decision', authenticateRequest, async (req, res) => {
             jsonData.sessions.push(currentSession);
         }
 
-        // Add decision
+        // Add decision (include unsubscribe method used, if any)
         currentSession.decisions.push({
             emailId,
             decision,
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
+            unsubscribeMethod: unsubResult?.unsubscribeResult?.method || null
         });
 
         // Save data
         await fs.writeFile(DATA_FILE, JSON.stringify(jsonData, null, 2));
 
+        // Return response with unsubscribe execution details
         res.json({
             success: true,
-            message: decision === 'unsubscribe' ? 'Unsubscribed successfully' : 'Email kept'
+            message: decision === 'unsubscribe'
+                ? (unsubResult?.unsubscribeResult?.success
+                    ? 'Unsubscribed successfully'
+                    : 'Unsubscribe attempted - may require manual confirmation')
+                : 'Email kept',
+            unsubscribeResult: decision === 'unsubscribe'
+                ? unsubResult?.unsubscribeResult
+                : undefined
         });
     } catch (error) {
         console.error('Error saving decision:', error);

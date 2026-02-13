@@ -41,10 +41,13 @@ struct Email: Codable, Identifiable, Equatable {
 struct EmailHeaders: Codable, Equatable {
     let from: String?
     let listUnsubscribe: String?
+    /// RFC 8058 one-click unsubscribe header (indicates reliable unsubscribe support)
+    let listUnsubscribePost: String?
 
     enum CodingKeys: String, CodingKey {
         case from
         case listUnsubscribe = "listUnsubscribe"
+        case listUnsubscribePost = "listUnsubscribePost"
     }
 }
 
@@ -125,6 +128,21 @@ struct DecisionAPIRequest: Codable {
 struct DecisionAPIResponse: Codable {
     let success: Bool
     let message: String?
+    let error: String?
+    /// Details of the server-side unsubscribe execution attempt (nil for "keep" decisions)
+    let unsubscribeResult: UnsubscribeResult?
+}
+
+/// Result details from the server's unsubscribe execution attempt.
+/// Reports which method succeeded (or if all methods failed) and what was tried.
+struct UnsubscribeResult: Codable {
+    /// Whether any unsubscribe method succeeded
+    let success: Bool
+    /// The method that worked: "rfc8058", "http-header", "http-body", "mailto", or nil
+    let method: String?
+    /// All methods attempted in cascade order
+    let attempted: [String]?
+    /// Error message if all methods failed
     let error: String?
 }
 

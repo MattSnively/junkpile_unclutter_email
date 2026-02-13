@@ -36,6 +36,7 @@ final class GoogleAuthService: NSObject, ObservableObject {
     private let scopes = [
         "https://www.googleapis.com/auth/gmail.readonly",
         "https://www.googleapis.com/auth/gmail.modify",
+        "https://www.googleapis.com/auth/gmail.send",       // Required for mailto-based unsubscribe
         "email",
         "profile"
     ]
@@ -197,7 +198,8 @@ final class GoogleAuthService: NSObject, ObservableObject {
     /// provides only Gmail API access.
     private let gmailOnlyScopes = [
         "https://www.googleapis.com/auth/gmail.readonly",
-        "https://www.googleapis.com/auth/gmail.modify"
+        "https://www.googleapis.com/auth/gmail.modify",
+        "https://www.googleapis.com/auth/gmail.send"        // Required for mailto-based unsubscribe
     ]
 
     /// Connects Gmail for an Apple Sign-In user (two-step auth flow).
