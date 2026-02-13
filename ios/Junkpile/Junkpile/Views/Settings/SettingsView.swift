@@ -345,6 +345,24 @@ struct SettingsView: View {
                 }
             }
 
+            // View terms of service — safe URL unwrap to prevent crash
+            if let termsURL = URL(string: "https://junkpile.app/terms") {
+                Link(destination: termsURL) {
+                    HStack {
+                        Image(systemName: "doc.text.fill")
+                            .foregroundColor(.blue)
+
+                        Text("Terms of Service")
+
+                        Spacer()
+
+                        Image(systemName: "arrow.up.right")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+            }
+
             // Data info
             HStack {
                 Image(systemName: "info.circle.fill")
