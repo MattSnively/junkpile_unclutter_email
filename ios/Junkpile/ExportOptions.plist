@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  ExportOptions.plist
+  Used by `xcodebuild -exportArchive` to produce a signed IPA for App Store / TestFlight.
+
+  - method: "app-store" targets App Store Connect (TestFlight + App Store).
+  - signingStyle: "manual" because we supply the certificate and profile explicitly in CI.
+  - teamID: Must match the Apple Developer Team ID (injected via CI secrets).
+  - provisioningProfiles: Maps the bundle ID to the provisioning profile name created
+    in the Apple Developer Portal.
+  - uploadBitcode / uploadSymbols: Include symbols for crash reporting; bitcode is
+    deprecated as of Xcode 14 but kept false explicitly for clarity.
+-->
+<plist version="1.0">
+<dict>
+	<!-- Distribution method — "app-store" uploads to App Store Connect / TestFlight -->
+	<key>method</key>
+	<string>app-store</string>
+
+	<!-- Use manual signing so CI controls the certificate and profile -->
+	<key>signingStyle</key>
+	<string>manual</string>
+
+	<!-- Apple Developer Team ID — must match the distribution certificate -->
+	<key>teamID</key>
+	<string>MS6RM34UX3</string>
+
+	<!-- Map each bundle ID to its provisioning profile name -->
+	<key>provisioningProfiles</key>
+	<dict>
+		<key>com.junkpile.app</key>
+		<string>Junkpile App Store</string>
+	</dict>
+
+	<!-- Upload dSYM symbols to App Store Connect for crash reporting -->
+	<key>uploadSymbols</key>
+	<true/>
+
+	<!-- Bitcode is deprecated since Xcode 14; explicitly disable -->
+	<key>uploadBitcode</key>
+	<false/>
+</dict>
+</plist>

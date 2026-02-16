@@ -10,6 +10,11 @@ on:
     paths:
       - 'ios/**'
       - '.github/workflows/ios-build.yml'
+    # Trigger on version tags for TestFlight deployment
+    # Note: paths filter also applies to tag pushes — tag a commit that includes ios/ changes,
+    # or use workflow_dispatch for manual deploys if the tagged commit doesn't match paths.
+    tags:
+      - 'v*'
 
   # Trigger on pull requests to main
   pull_request:
@@ -17,7 +22,7 @@ on:
     paths:
       - 'ios/**'
 
-  # Allow manual trigger from GitHub Actions tab
+  # Allow manual trigger from GitHub Actions tab (also used for TestFlight deploys)
   workflow_dispatch:
 
 # Environment variables used across jobs
@@ -186,3 +191,203 @@ jobs:
           cd ios/Junkpile
           swiftlint lint --reporter github-actions-logging || true
         continue-on-error: true  # Don't fail build on lint warnings
+
+  # =============================================================================
+  # Deploy job - Signs, archives, and uploads to TestFlight
+  # Only runs on manual trigger (workflow_dispatch) or version tag pushes (v*)
+  # =============================================================================
+  deploy-testflight:
+    name: Deploy to TestFlight
+    runs-on: macos-14
+    needs: [build, test]
+    # Only deploy on manual triggers or version tag pushes — never on regular branch pushes or PRs
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      startsWith(github.ref, 'refs/tags/v')
+    # Explicit timeout to prevent hung builds from burning runner minutes
+    timeout-minutes: 30
+
+    steps:
+      # -----------------------------------------------------------------------
+      # Step 1: Checkout the repository
+      # -----------------------------------------------------------------------
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # -----------------------------------------------------------------------
+      # Step 2: Select Xcode version (must match other jobs)
+      # -----------------------------------------------------------------------
+      - name: Select Xcode version
+        run: sudo xcode-select -s /Applications/Xcode_15.2.app/Contents/Developer
+
+      # -----------------------------------------------------------------------
+      # Step 3: Install the Apple distribution certificate into a temporary keychain
+      # - Decodes the base64-encoded .p12 from GitHub Secrets
+      # - Creates an isolated keychain so we don't pollute the system keychain
+      # - Imports the certificate with the password from secrets
+      # -----------------------------------------------------------------------
+      - name: Install Apple certificate
+        env:
+          APPLE_CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+        run: |
+          # Decode the .p12 certificate from base64
+          CERTIFICATE_PATH=$RUNNER_TEMP/distribution.p12
+          echo "$APPLE_CERTIFICATE_BASE64" | base64 --decode > "$CERTIFICATE_PATH"
+
+          # Create a temporary keychain with a random password
+          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+          KEYCHAIN_PASSWORD=$(openssl rand -hex 16)
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+          # Configure the keychain: no auto-lock, add to search list
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security list-keychains -d user -s "$KEYCHAIN_PATH" $(security list-keychains -d user | tr -d '"')
+
+          # Unlock the keychain so xcodebuild can access the certificate
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+          # Import the .p12 certificate into the temporary keychain
+          # -T /usr/bin/codesign grants codesign access without UI prompts
+          security import "$CERTIFICATE_PATH" \
+            -P "$APPLE_CERTIFICATE_PASSWORD" \
+            -A \
+            -t cert \
+            -f pkcs12 \
+            -k "$KEYCHAIN_PATH" \
+            -T /usr/bin/codesign
+
+          # Allow codesign to use the certificate without prompting for keychain password
+          security set-key-partition-list -S apple-tool:,apple:,codesign: \
+            -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+          echo "Certificate installed successfully."
+
+      # -----------------------------------------------------------------------
+      # Step 4: Install the provisioning profile
+      # - Decodes the base64-encoded .mobileprovision from GitHub Secrets
+      # - Copies it to the standard macOS location where Xcode looks for profiles
+      # -----------------------------------------------------------------------
+      - name: Install provisioning profile
+        env:
+          APPLE_PROVISIONING_PROFILE_BASE64: ${{ secrets.APPLE_PROVISIONING_PROFILE_BASE64 }}
+        run: |
+          # Create the provisioning profiles directory if it doesn't exist
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+
+          # Decode and install the provisioning profile
+          PROFILE_PATH=~/Library/MobileDevice/Provisioning\ Profiles/junkpile_appstore.mobileprovision
+          echo "$APPLE_PROVISIONING_PROFILE_BASE64" | base64 --decode > "$PROFILE_PATH"
+
+          echo "Provisioning profile installed."
+
+      # -----------------------------------------------------------------------
+      # Step 5: Set up the App Store Connect API key for upload authentication
+      # - Decodes the base64-encoded .p8 key from GitHub Secrets
+      # - Writes it to the directory structure that xcrun altool expects
+      # -----------------------------------------------------------------------
+      - name: Set up App Store Connect API key
+        env:
+          ASC_API_KEY_BASE64: ${{ secrets.ASC_API_KEY_BASE64 }}
+          ASC_API_KEY_ID: ${{ secrets.ASC_API_KEY_ID }}
+        run: |
+          # Create the directory structure expected by Apple tools
+          mkdir -p ~/private_keys
+
+          # Decode the .p8 API key file
+          echo "$ASC_API_KEY_BASE64" | base64 --decode > ~/private_keys/AuthKey_${ASC_API_KEY_ID}.p8
+
+          echo "App Store Connect API key configured."
+
+      # -----------------------------------------------------------------------
+      # Step 6: Resolve Swift package dependencies
+      # -----------------------------------------------------------------------
+      - name: Resolve dependencies
+        run: |
+          cd ios/Junkpile
+          xcodebuild -resolvePackageDependencies \
+            -project Junkpile.xcodeproj \
+            -scheme ${{ env.SCHEME }}
+
+      # -----------------------------------------------------------------------
+      # Step 7: Create a signed archive (.xcarchive)
+      # - Builds for generic iOS device (ARM64, not simulator)
+      # - Uses Release configuration for optimizations and App Store requirements
+      # - Overrides signing settings via build flags (keeps project.pbxproj clean)
+      # -----------------------------------------------------------------------
+      - name: Archive for distribution
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          cd ios/Junkpile
+          xcodebuild archive \
+            -project Junkpile.xcodeproj \
+            -scheme ${{ env.SCHEME }} \
+            -destination "generic/platform=iOS" \
+            -archivePath $RUNNER_TEMP/Junkpile.xcarchive \
+            -configuration Release \
+            DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
+            CODE_SIGN_IDENTITY="Apple Distribution" \
+            CODE_SIGN_STYLE=Manual \
+            PROVISIONING_PROFILE_SPECIFIER="Junkpile App Store" \
+            | xcpretty --color
+
+      # -----------------------------------------------------------------------
+      # Step 8: Export the archive to a signed IPA
+      # - Uses ExportOptions.plist to configure the export (method, signing, etc.)
+      # - Produces a .ipa file ready for App Store Connect upload
+      # -----------------------------------------------------------------------
+      - name: Export IPA
+        run: |
+          xcodebuild -exportArchive \
+            -archivePath $RUNNER_TEMP/Junkpile.xcarchive \
+            -exportPath $RUNNER_TEMP/ipa_output \
+            -exportOptionsPlist ios/Junkpile/ExportOptions.plist \
+            | xcpretty --color
+
+      # -----------------------------------------------------------------------
+      # Step 9: Upload the IPA to App Store Connect (TestFlight)
+      # - Uses xcrun altool with the App Store Connect API key for authentication
+      # - The build will appear in TestFlight after Apple processes it (15-30 min)
+      # -----------------------------------------------------------------------
+      - name: Upload to TestFlight
+        env:
+          ASC_API_KEY_ID: ${{ secrets.ASC_API_KEY_ID }}
+          ASC_API_ISSUER_ID: ${{ secrets.ASC_API_ISSUER_ID }}
+        run: |
+          xcrun altool --upload-app \
+            --type ios \
+            --file "$(find $RUNNER_TEMP/ipa_output -name '*.ipa')" \
+            --apiKey "$ASC_API_KEY_ID" \
+            --apiIssuer "$ASC_API_ISSUER_ID"
+
+      # -----------------------------------------------------------------------
+      # Step 10: Upload the IPA as a GitHub artifact for reference
+      # -----------------------------------------------------------------------
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: junkpile-ipa
+          path: ${{ runner.temp }}/ipa_output/*.ipa
+          retention-days: 30
+
+      # -----------------------------------------------------------------------
+      # Step 11: Clean up sensitive files from the runner
+      # - Removes the temporary keychain (contains the signing certificate)
+      # - Removes the API key file
+      # - Runs even if previous steps fail to avoid leaking credentials
+      # -----------------------------------------------------------------------
+      - name: Clean up keychain and secrets
+        if: always()
+        run: |
+          # Delete the temporary keychain
+          security delete-keychain $RUNNER_TEMP/app-signing.keychain-db || true
+
+          # Remove the API key file
+          rm -f ~/private_keys/AuthKey_*.p8 || true
+
+          # Remove the provisioning profile
+          rm -f ~/Library/MobileDevice/Provisioning\ Profiles/junkpile_appstore.mobileprovision || true
+
+          echo "Cleanup complete."
