@@ -27,6 +27,11 @@ app.use(session({
 }));
 app.use(express.static(path.join(__dirname, '../public')));
 
+// Health check endpoint — returns 200 so Railway knows the service is alive
+app.get('/health', (req, res) => {
+    res.json({ status: 'ok' });
+});
+
 // Data file path
 const DATA_FILE = path.join(__dirname, '../data/decisions.json');
 
