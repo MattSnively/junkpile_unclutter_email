@@ -328,8 +328,6 @@ jobs:
         env:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
-          # pipefail ensures xcodebuild failures aren't masked by xcpretty
-          set -o pipefail
           cd ios/Junkpile
           xcodebuild archive \
             -project Junkpile.xcodeproj \
@@ -340,8 +338,7 @@ jobs:
             DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
             CODE_SIGN_IDENTITY="Apple Distribution" \
             CODE_SIGN_STYLE=Manual \
-            PROVISIONING_PROFILE_SPECIFIER="Junkpile App Store" \
-            | xcpretty --color
+            PROVISIONING_PROFILE_SPECIFIER="Junkpile App Store"
 
       # -----------------------------------------------------------------------
       # Step 8: Export the archive to a signed IPA
