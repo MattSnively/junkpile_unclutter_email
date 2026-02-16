@@ -47,7 +47,7 @@ jobs:
 
       # Select Xcode version
       - name: Select Xcode version
-        run: sudo xcode-select -s /Applications/Xcode_16.2.app/Contents/Developer
+        run: sudo xcode-select -s /Applications/Xcode_16.4.app/Contents/Developer
 
       # Display Xcode version for debugging
       - name: Show Xcode version
@@ -99,7 +99,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Select Xcode version
-        run: sudo xcode-select -s /Applications/Xcode_16.2.app/Contents/Developer
+        run: sudo xcode-select -s /Applications/Xcode_16.4.app/Contents/Developer
 
       # Boot the simulator ahead of time for faster test execution
       - name: Boot Simulator
@@ -145,7 +145,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Select Xcode version
-        run: sudo xcode-select -s /Applications/Xcode_16.2.app/Contents/Developer
+        run: sudo xcode-select -s /Applications/Xcode_16.4.app/Contents/Developer
 
       # Archive for generic iOS device (no signing - just validates the archive)
       - name: Create Archive
@@ -218,7 +218,7 @@ jobs:
       # Step 2: Select Xcode version (must match other jobs)
       # -----------------------------------------------------------------------
       - name: Select Xcode version
-        run: sudo xcode-select -s /Applications/Xcode_16.2.app/Contents/Developer
+        run: sudo xcode-select -s /Applications/Xcode_16.4.app/Contents/Developer
 
       # -----------------------------------------------------------------------
       # Step 3: Install the Apple distribution certificate into a temporary keychain
