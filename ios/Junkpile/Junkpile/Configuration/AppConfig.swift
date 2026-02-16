@@ -14,13 +14,13 @@ enum AppConfig {
 
     /// Google OAuth client ID from Google Cloud Console.
     /// Must match the iOS client configured at https://console.cloud.google.com/apis/credentials
-    static let googleClientID = "758350179240-fjqmnjskeagiekciefleb11ntn8ui26e.apps.googleusercontent.com"
+    static let googleClientID = "758350179240-rlbdcla4brd4ffus0ln3nvfma5pn9j5r.apps.googleusercontent.com"
 
     /// Reversed Google client ID used as the OAuth callback URL scheme.
     /// This is the client ID with the segments reversed and periods replaced,
     /// following Google's standard pattern for iOS deep links.
     /// Must match one of the URL schemes in Info.plist.
-    static let googleReversedClientID = "com.googleusercontent.apps.758350179240-fjqmnjskeagiekciefleb11ntn8ui26e"
+    static let googleReversedClientID = "com.googleusercontent.apps.758350179240-rlbdcla4brd4ffus0ln3nvfma5pn9j5r"
 
     // MARK: - OAuth Redirect
 
