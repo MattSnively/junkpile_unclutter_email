@@ -328,6 +328,8 @@ jobs:
         env:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
+          # pipefail ensures xcodebuild failures aren't masked by xcpretty
+          set -o pipefail
           cd ios/Junkpile
           xcodebuild archive \
             -project Junkpile.xcodeproj \
@@ -348,6 +350,7 @@ jobs:
       # -----------------------------------------------------------------------
       - name: Export IPA
         run: |
+          set -o pipefail
           xcodebuild -exportArchive \
             -archivePath $RUNNER_TEMP/Junkpile.xcarchive \
             -exportPath $RUNNER_TEMP/ipa_output \
