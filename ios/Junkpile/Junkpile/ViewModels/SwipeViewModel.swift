@@ -1,5 +1,6 @@
 import Foundation
 import SwiftData
+import UIKit  // Required for UINotificationFeedbackGenerator (haptic feedback)
 
 /// SwipeViewModel manages the email fetching, swipe decisions, and session tracking.
 /// Coordinates between the UI, API service, and local persistence.
