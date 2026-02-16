@@ -22,6 +22,7 @@
 		100000000000000000000011 /* APIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000011 /* APIService.swift */; };
 		100000000000000000000012 /* GoogleAuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000012 /* GoogleAuthService.swift */; };
 		100000000000000000000013 /* GamificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000013 /* GamificationService.swift */; };
+		100000000000000000000015 /* NotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000015 /* NotificationService.swift */; };
 		/* ViewModels */
 		100000000000000000000020 /* AuthViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000020 /* AuthViewModel.swift */; };
 		100000000000000000000021 /* SwipeViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000021 /* SwipeViewModel.swift */; };
@@ -35,6 +36,7 @@
 		100000000000000000000043 /* ConnectGmailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000043 /* ConnectGmailView.swift */; };
 		/* Views - Home */
 		100000000000000000000050 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000050 /* HomeView.swift */; };
+		100000000000000000000051 /* SplashView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000051 /* SplashView.swift */; };
 		/* Views - Swipe */
 		100000000000000000000060 /* EmailCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000060 /* EmailCardView.swift */; };
 		100000000000000000000061 /* EmailCardStack.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000061 /* EmailCardStack.swift */; };
@@ -47,6 +49,7 @@
 		100000000000000000000080 /* StatsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000080 /* StatsView.swift */; };
 		/* Views - Settings */
 		100000000000000000000090 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000090 /* SettingsView.swift */; };
+		100000000000000000000091 /* DisclaimerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000091 /* DisclaimerView.swift */; };
 		/* App */
 		100000000000000000000100 /* JunkpileApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000100 /* JunkpileApp.swift */; };
 		/* Configuration */
@@ -72,6 +75,7 @@
 		200000000000000000000012 /* GoogleAuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoogleAuthService.swift; sourceTree = "<group>"; };
 		200000000000000000000013 /* GamificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GamificationService.swift; sourceTree = "<group>"; };
 		200000000000000000000014 /* AppleAuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppleAuthService.swift; sourceTree = "<group>"; };
+		200000000000000000000015 /* NotificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationService.swift; sourceTree = "<group>"; };
 		/* ViewModels */
 		200000000000000000000020 /* AuthViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthViewModel.swift; sourceTree = "<group>"; };
 		200000000000000000000021 /* SwipeViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwipeViewModel.swift; sourceTree = "<group>"; };
@@ -85,6 +89,7 @@
 		200000000000000000000043 /* ConnectGmailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectGmailView.swift; sourceTree = "<group>"; };
 		/* Views - Home */
 		200000000000000000000050 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
+		200000000000000000000051 /* SplashView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplashView.swift; sourceTree = "<group>"; };
 		/* Views - Swipe */
 		200000000000000000000060 /* EmailCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmailCardView.swift; sourceTree = "<group>"; };
 		200000000000000000000061 /* EmailCardStack.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmailCardStack.swift; sourceTree = "<group>"; };
@@ -97,6 +102,7 @@
 		200000000000000000000080 /* StatsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsView.swift; sourceTree = "<group>"; };
 		/* Views - Settings */
 		200000000000000000000090 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		200000000000000000000091 /* DisclaimerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisclaimerView.swift; sourceTree = "<group>"; };
 		/* App */
 		200000000000000000000100 /* JunkpileApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JunkpileApp.swift; sourceTree = "<group>"; };
 		/* Configuration */
@@ -169,6 +175,7 @@
 		500000000000000000000020 /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				200000000000000000000051 /* SplashView.swift */,
 				500000000000000000000021 /* Onboarding */,
 				500000000000000000000022 /* Home */,
 				500000000000000000000023 /* Swipe */,
@@ -229,6 +236,7 @@
 			isa = PBXGroup;
 			children = (
 				200000000000000000000090 /* SettingsView.swift */,
+				200000000000000000000091 /* DisclaimerView.swift */,
 			);
 			path = Settings;
 			sourceTree = "<group>";
@@ -252,6 +260,7 @@
 				200000000000000000000012 /* GoogleAuthService.swift */,
 				200000000000000000000014 /* AppleAuthService.swift */,
 				200000000000000000000013 /* GamificationService.swift */,
+				200000000000000000000015 /* NotificationService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -362,6 +371,7 @@
 				100000000000000000000011 /* APIService.swift in Sources */,
 				100000000000000000000012 /* GoogleAuthService.swift in Sources */,
 				100000000000000000000013 /* GamificationService.swift in Sources */,
+				100000000000000000000015 /* NotificationService.swift in Sources */,
 				100000000000000000000020 /* AuthViewModel.swift in Sources */,
 				100000000000000000000021 /* SwipeViewModel.swift in Sources */,
 				100000000000000000000022 /* GamificationViewModel.swift in Sources */,
@@ -371,6 +381,7 @@
 				100000000000000000000042 /* SignInView.swift in Sources */,
 				100000000000000000000043 /* ConnectGmailView.swift in Sources */,
 				100000000000000000000050 /* HomeView.swift in Sources */,
+				100000000000000000000051 /* SplashView.swift in Sources */,
 				100000000000000000000060 /* EmailCardView.swift in Sources */,
 				100000000000000000000061 /* EmailCardStack.swift in Sources */,
 				100000000000000000000062 /* SwipeContainerView.swift in Sources */,
@@ -379,6 +390,7 @@
 				100000000000000000000072 /* StreakView.swift in Sources */,
 				100000000000000000000080 /* StatsView.swift in Sources */,
 				100000000000000000000090 /* SettingsView.swift in Sources */,
+				100000000000000000000091 /* DisclaimerView.swift in Sources */,
 				100000000000000000000100 /* JunkpileApp.swift in Sources */,
 				100000000000000000000110 /* AppConfig.swift in Sources */,
 			);
