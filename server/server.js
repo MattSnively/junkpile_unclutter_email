@@ -12,7 +12,8 @@ const { generateSessionToken, verifySessionToken } = require('./sessionToken');
 const userStore = require('./userStore');
 
 const app = express();
-const PORT = 3000;
+// Use Railway's injected PORT in production, fall back to 3000 for local dev
+const PORT = process.env.PORT || 3000;
 
 // Middleware
 app.use(cors());
@@ -21,7 +22,8 @@ app.use(session({
     secret: process.env.SESSION_SECRET || 'junkpile-secret-key',
     resave: false,
     saveUninitialized: false,
-    cookie: { secure: false } // Set to true if using HTTPS
+    // Secure cookies in production (Railway serves over HTTPS)
+    cookie: { secure: process.env.NODE_ENV === 'production' }
 }));
 app.use(express.static(path.join(__dirname, '../public')));
 
@@ -35,9 +37,14 @@ const oauth2Client = new google.auth.OAuth2(
     process.env.GMAIL_REDIRECT_URI || 'http://localhost:3000/auth/google/callback'
 );
 
-// Initialize data file
+// Initialize data file, creating the data/ directory if it doesn't exist.
+// The data/ directory is gitignored, so it won't exist on first deploy.
 async function initDataFile() {
     try {
+        // Ensure the parent directory exists (gitignored, won't be in the repo)
+        const dataDir = path.dirname(DATA_FILE);
+        await fs.mkdir(dataDir, { recursive: true });
+
         await fs.access(DATA_FILE);
     } catch {
         await fs.writeFile(DATA_FILE, JSON.stringify({ sessions: [] }, null, 2));
@@ -707,8 +714,9 @@ app.get('/api/stats', async (req, res) => {
 
 // Start server — initialize both decisions and users data files
 Promise.all([initDataFile(), userStore.initUsersFile()]).then(() => {
-    app.listen(PORT, () => {
-        console.log(`Junkpile server running on http://localhost:${PORT}`);
+    // Bind to 0.0.0.0 so Railway's reverse proxy can reach the container
+    app.listen(PORT, '0.0.0.0', () => {
+        console.log(`Junkpile server running on port ${PORT}`);
         if (!hasGmailCredentials()) {
             console.log('\n⚠️  Gmail credentials not configured!');
             console.log('Please set up your .env file with Gmail OAuth credentials.');

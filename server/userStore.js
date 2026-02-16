@@ -36,6 +36,10 @@ const USERS_FILE = path.join(__dirname, '../data/users.json');
  */
 async function initUsersFile() {
     try {
+        // Ensure the data/ directory exists (gitignored, won't be in the repo)
+        const dataDir = path.dirname(USERS_FILE);
+        await fs.mkdir(dataDir, { recursive: true });
+
         await fs.access(USERS_FILE);
     } catch {
         // File doesn't exist — create it with empty users array
