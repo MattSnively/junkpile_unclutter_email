@@ -232,8 +232,12 @@ jobs:
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
         run: |
           # Decode the .p12 certificate from base64
+          # Strip any carriage returns or whitespace that may have been added by PowerShell/Windows
           CERTIFICATE_PATH=$RUNNER_TEMP/distribution.p12
-          echo "$APPLE_CERTIFICATE_BASE64" | base64 --decode > "$CERTIFICATE_PATH"
+          printf '%s' "$APPLE_CERTIFICATE_BASE64" | tr -d '\r\n\t ' | base64 --decode > "$CERTIFICATE_PATH"
+
+          # Debug: show decoded file size to verify integrity
+          echo "Decoded .p12 file size: $(wc -c < "$CERTIFICATE_PATH") bytes"
 
           # Create a temporary keychain with a random password
           KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
@@ -249,8 +253,11 @@ jobs:
 
           # Import the .p12 certificate into the temporary keychain
           # -T /usr/bin/codesign grants codesign access without UI prompts
+          # Trim any trailing whitespace/carriage returns from the password
+          CERT_PASSWORD=$(printf '%s' "$APPLE_CERTIFICATE_PASSWORD" | tr -d '\r\n')
+
           security import "$CERTIFICATE_PATH" \
-            -P "$APPLE_CERTIFICATE_PASSWORD" \
+            -P "$CERT_PASSWORD" \
             -A \
             -t cert \
             -f pkcs12 \
@@ -276,8 +283,9 @@ jobs:
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
 
           # Decode and install the provisioning profile
+          # Strip any carriage returns or whitespace from the base64 string
           PROFILE_PATH=~/Library/MobileDevice/Provisioning\ Profiles/junkpile_appstore.mobileprovision
-          echo "$APPLE_PROVISIONING_PROFILE_BASE64" | base64 --decode > "$PROFILE_PATH"
+          printf '%s' "$APPLE_PROVISIONING_PROFILE_BASE64" | tr -d '\r\n\t ' | base64 --decode > "$PROFILE_PATH"
 
           echo "Provisioning profile installed."
 
@@ -295,7 +303,8 @@ jobs:
           mkdir -p ~/private_keys
 
           # Decode the .p8 API key file
-          echo "$ASC_API_KEY_BASE64" | base64 --decode > ~/private_keys/AuthKey_${ASC_API_KEY_ID}.p8
+          # Strip any carriage returns or whitespace from the base64 string
+          printf '%s' "$ASC_API_KEY_BASE64" | tr -d '\r\n\t ' | base64 --decode > ~/private_keys/AuthKey_${ASC_API_KEY_ID}.p8
 
           echo "App Store Connect API key configured."
 
