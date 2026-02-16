@@ -33,9 +33,10 @@ enum AppConfig {
 
     // MARK: - API Base URL
 
-    /// Production API base URL.
-    /// TODO: Update this to your real production server URL before App Store submission.
-    private static let productionBaseURL = "https://api.junkpile.app"
+    /// Production API base URL (Railway deployment).
+    /// TODO: Replace with your actual Railway URL after first successful deploy.
+    /// It will look like: https://junkpile-unclutter-email-production.up.railway.app
+    private static let productionBaseURL = "https://YOUR_RAILWAY_URL.up.railway.app"
 
     /// Development API base URL (local server for simulator testing).
     private static let developmentBaseURL = "http://localhost:3000"
