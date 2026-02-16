@@ -232,7 +232,7 @@ extension ModelContext {
 
         let descriptor = FetchDescriptor<DailyActivity>(
             predicate: #Predicate { $0.date >= start && $0.date <= end },
-            sortBy: [SortDescriptor(\.date, order: .ascending)]
+            sortBy: [SortDescriptor(\.date, order: .forward)]
         )
 
         return (try? fetch(descriptor)) ?? []
