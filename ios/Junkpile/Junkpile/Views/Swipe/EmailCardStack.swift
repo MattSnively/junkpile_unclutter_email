@@ -120,24 +120,15 @@ struct EmailCardStack: View {
         .animation(isTopCard ? nil : returnAnimation, value: currentIndex)
         // VoiceOver custom actions — allow swiping via rotor without drag gesture.
         // Only the top card gets actions; background cards are hidden from VoiceOver.
-        .if(isTopCard) { view in
-            // Wrap in AnyView to resolve type inference with accessibilityCustomAction
-            AnyView(
-                view
-                    .accessibilityAddTraits(.isSelected)
-                    .accessibilityCustomAction("Keep") {
-                        completeSwipe(direction: .right)
-                        return true
-                    }
-                    .accessibilityCustomAction("Unsubscribe") {
-                        completeSwipe(direction: .left)
-                        return true
-                    }
-            )
+        // VoiceOver: top card gets custom swipe actions; background cards are hidden
+        .accessibilityAddTraits(isTopCard ? .isSelected : [])
+        .accessibilityAction(named: "Keep") {
+            if isTopCard { completeSwipe(direction: .right) }
         }
-        .if(!isTopCard) { view in
-            view.accessibilityHidden(true)
+        .accessibilityAction(named: "Unsubscribe") {
+            if isTopCard { completeSwipe(direction: .left) }
         }
+        .accessibilityHidden(!isTopCard)
     }
 
     /// Indices of cards that should be visible (current + next two)
