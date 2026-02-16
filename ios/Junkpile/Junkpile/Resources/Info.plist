@@ -37,7 +37,7 @@
 				<!-- Custom URL scheme for OAuth redirect -->
 				<string>com.junkpile.app</string>
 				<!-- Google Sign-In reversed client ID (matches AppConfig.googleReversedClientID) -->
-				<string>com.googleusercontent.apps.758350179240-fjqmnjskeagiekciefleb11ntn8ui26e</string>
+				<string>com.googleusercontent.apps.758350179240-rlbdcla4brd4ffus0ln3nvfma5pn9j5r</string>
 			</array>
 		</dict>
 	</array>
