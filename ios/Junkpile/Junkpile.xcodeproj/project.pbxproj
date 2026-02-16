@@ -54,6 +54,14 @@
 		100000000000000000000100 /* JunkpileApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000100 /* JunkpileApp.swift */; };
 		/* Configuration */
 		100000000000000000000110 /* AppConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000110 /* AppConfig.swift */; };
+		/* Extensions */
+		100000000000000000000120 /* NumberFormatting.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000120 /* NumberFormatting.swift */; };
+		100000000000000000000121 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000121 /* Theme.swift */; };
+		/* Views - Components */
+		100000000000000000000130 /* ShimmerModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000130 /* ShimmerModifier.swift */; };
+		100000000000000000000131 /* SkeletonCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000131 /* SkeletonCardView.swift */; };
+		100000000000000000000132 /* SkeletonLoadingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000132 /* SkeletonLoadingView.swift */; };
+		100000000000000000000133 /* UndoButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000133 /* UndoButton.swift */; };
 		/* Assets */
 		100000000000000000000200 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000200 /* Assets.xcassets */; };
 /* End PBXBuildFile section */
@@ -107,6 +115,14 @@
 		200000000000000000000100 /* JunkpileApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JunkpileApp.swift; sourceTree = "<group>"; };
 		/* Configuration */
 		200000000000000000000110 /* AppConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfig.swift; sourceTree = "<group>"; };
+		/* Extensions */
+		200000000000000000000120 /* NumberFormatting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NumberFormatting.swift; sourceTree = "<group>"; };
+		200000000000000000000121 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
+		/* Views - Components */
+		200000000000000000000130 /* ShimmerModifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShimmerModifier.swift; sourceTree = "<group>"; };
+		200000000000000000000131 /* SkeletonCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkeletonCardView.swift; sourceTree = "<group>"; };
+		200000000000000000000132 /* SkeletonLoadingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkeletonLoadingView.swift; sourceTree = "<group>"; };
+		200000000000000000000133 /* UndoButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UndoButton.swift; sourceTree = "<group>"; };
 		/* Entitlements */
 		200000000000000000000400 /* Junkpile.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Junkpile.entitlements; sourceTree = "<group>"; };
 		/* Assets */
@@ -145,6 +161,7 @@
 				500000000000000000000040 /* Services */,
 				500000000000000000000050 /* Persistence */,
 				500000000000000000000070 /* Configuration */,
+				500000000000000000000080 /* Extensions */,
 				500000000000000000000060 /* Resources */,
 			);
 			path = Junkpile;
@@ -182,6 +199,7 @@
 				500000000000000000000024 /* Gamification */,
 				500000000000000000000025 /* Statistics */,
 				500000000000000000000026 /* Settings */,
+				500000000000000000000027 /* Components */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -290,6 +308,26 @@
 			path = Resources;
 			sourceTree = "<group>";
 		};
+		500000000000000000000080 /* Extensions */ = {
+			isa = PBXGroup;
+			children = (
+				200000000000000000000120 /* NumberFormatting.swift */,
+				200000000000000000000121 /* Theme.swift */,
+			);
+			path = Extensions;
+			sourceTree = "<group>";
+		};
+		500000000000000000000027 /* Components */ = {
+			isa = PBXGroup;
+			children = (
+				200000000000000000000130 /* ShimmerModifier.swift */,
+				200000000000000000000131 /* SkeletonCardView.swift */,
+				200000000000000000000132 /* SkeletonLoadingView.swift */,
+				200000000000000000000133 /* UndoButton.swift */,
+			);
+			path = Components;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -393,6 +431,12 @@
 				100000000000000000000091 /* DisclaimerView.swift in Sources */,
 				100000000000000000000100 /* JunkpileApp.swift in Sources */,
 				100000000000000000000110 /* AppConfig.swift in Sources */,
+				100000000000000000000120 /* NumberFormatting.swift in Sources */,
+				100000000000000000000121 /* Theme.swift in Sources */,
+				100000000000000000000130 /* ShimmerModifier.swift in Sources */,
+				100000000000000000000131 /* SkeletonCardView.swift in Sources */,
+				100000000000000000000132 /* SkeletonLoadingView.swift in Sources */,
+				100000000000000000000133 /* UndoButton.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
