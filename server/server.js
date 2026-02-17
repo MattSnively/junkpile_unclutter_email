@@ -582,8 +582,10 @@ async function authenticateRequest(req, res, next) {
             });
         }
 
-        // Not a server session token — treat as a Google access token (existing behavior)
-        req.authTokens = { access_token: token };
+        // Not a server session token — treat as a Google access token (existing behavior).
+        // Explicitly null out refresh_token so the googleapis library won't try to
+        // auto-refresh using the web client credentials (which can't refresh iOS tokens).
+        req.authTokens = { access_token: token, refresh_token: null };
         return next();
     }
 
@@ -662,7 +664,7 @@ app.get('/api/emails', authenticateRequest, async (req, res) => {
         console.error('Error fetching emails:', error);
 
         // Check if it's an auth error
-        if (error.code === 401 || error.message.includes('invalid_grant')) {
+        if (error.code === 401 || error.message.includes('invalid_grant') || error.message.includes('unauthorized_client')) {
             return res.status(401).json({
                 success: false,
                 needsAuth: true,
