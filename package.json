@@ -23,8 +23,7 @@
     "express-session": "^1.17.3",
     "googleapis": "^128.0.0",
     "jsonwebtoken": "^9.0.3",
-    "jwks-rsa": "^3.2.2",
-    "uuid": "^13.0.0"
+    "jwks-rsa": "^3.2.2"
   },
   "engines": {
     "node": ">=18.0.0"
