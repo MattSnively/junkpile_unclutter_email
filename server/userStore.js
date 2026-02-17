@@ -25,7 +25,7 @@
 
 const fs = require('fs').promises;
 const path = require('path');
-const { v4: uuidv4 } = require('uuid');
+const crypto = require('crypto');
 
 // User data file path — stored alongside decisions.json in the data/ directory
 const USERS_FILE = path.join(__dirname, '../data/users.json');
@@ -115,7 +115,7 @@ async function createUser(userData) {
     const users = await readUsers();
 
     const newUser = {
-        id: uuidv4(),
+        id: crypto.randomUUID(),
         appleUserId: userData.appleUserId || null,
         email: userData.email,
         name: userData.name || null,
