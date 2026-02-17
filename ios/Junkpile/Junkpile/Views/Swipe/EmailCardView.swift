@@ -215,8 +215,21 @@ extension String {
     /// Strips HTML tags from the string and returns plain text.
     /// Used for displaying email preview without HTML formatting.
     func strippingHTML() -> String {
-        // Remove HTML tags
-        var result = self.replacingOccurrences(of: "<[^>]+>", with: " ", options: .regularExpression)
+        // Remove <style> and <script> blocks entirely (tags + content).
+        // Without this, CSS rules leak into the preview as visible text.
+        var result = self.replacingOccurrences(
+            of: "<style[^>]*>[\\s\\S]*?</style>",
+            with: " ",
+            options: .regularExpression
+        )
+        result = result.replacingOccurrences(
+            of: "<script[^>]*>[\\s\\S]*?</script>",
+            with: " ",
+            options: .regularExpression
+        )
+
+        // Remove remaining HTML tags
+        result = result.replacingOccurrences(of: "<[^>]+>", with: " ", options: .regularExpression)
 
         // Decode common HTML entities
         let entities: [String: String] = [
