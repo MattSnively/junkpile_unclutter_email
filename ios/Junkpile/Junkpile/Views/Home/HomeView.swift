@@ -10,6 +10,11 @@ struct HomeView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
     @EnvironmentObject var gamificationViewModel: GamificationViewModel
 
+    // MARK: - Navigation
+
+    /// Binding to the tab bar's selected tab, used to navigate to Swipe tab from quick action card
+    @Binding var selectedTab: Tab
+
     // MARK: - State
 
     /// Whether achievement unlock overlay is shown
@@ -95,7 +100,8 @@ struct HomeView: View {
     private var welcomeHeader: some View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
-                Text("Welcome back,")
+                // Show "Welcome," for first-time users, "Welcome back," for returning users
+                Text(gamificationViewModel.totalSessions == 0 ? "Welcome," : "Welcome back,")
                     .font(.subheadline)
                     .foregroundColor(.secondary)
 
@@ -355,36 +361,43 @@ struct HomeView: View {
         }
     }
 
-    /// Quick action card to start swiping
+    /// Quick action card to start swiping — tapping navigates to the Swipe tab
     private var quickActionCard: some View {
-        VStack(spacing: 12) {
-            Image(systemName: "hand.draw.fill")
-                .font(.largeTitle)
-                .foregroundColor(.primary)
+        Button {
+            selectedTab = .swipe
+        } label: {
+            VStack(spacing: 12) {
+                Image(systemName: "hand.draw.fill")
+                    .font(.largeTitle)
+                    .foregroundColor(.primary)
 
-            Text("Ready to clean your inbox?")
-                .font(.headline)
-                .foregroundColor(.primary)
+                Text("Ready to clean your inbox?")
+                    .font(.headline)
+                    .foregroundColor(.primary)
 
-            Text("Swipe through emails with unsubscribe options")
-                .font(.caption)
-                .foregroundColor(.secondary)
-                .multilineTextAlignment(.center)
-        }
-        .padding(24)
-        .frame(maxWidth: .infinity)
-        .background(
-            LinearGradient(
-                colors: [Theme.subtleFill.opacity(0.5), Theme.subtleFill],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
+                Text("Swipe through emails with unsubscribe options")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+            }
+            .padding(24)
+            .frame(maxWidth: .infinity)
+            .background(
+                LinearGradient(
+                    colors: [Theme.subtleFill.opacity(0.5), Theme.subtleFill],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
             )
-        )
-        .cornerRadius(16)
-        .overlay(
-            RoundedRectangle(cornerRadius: 16)
-                .stroke(Theme.cardBorder, lineWidth: 2)
-        )
+            .cornerRadius(16)
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(Theme.cardBorder, lineWidth: 2)
+            )
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Start swiping emails")
+        .accessibilityHint("Switches to the Swipe tab to begin cleaning your inbox")
     }
 
     /// Recent achievements preview
@@ -460,7 +473,7 @@ struct HomeView: View {
     let authVM = AuthViewModel()
     authVM.authState = .authenticated
 
-    return HomeView()
+    return HomeView(selectedTab: .constant(.home))
         .environmentObject(authVM)
         .environmentObject(GamificationViewModel())
         .modelContainer(PersistenceController.preview.container)
@@ -470,7 +483,7 @@ struct HomeView: View {
     let authVM = AuthViewModel()
     authVM.authState = .authenticated
 
-    return HomeView()
+    return HomeView(selectedTab: .constant(.home))
         .environmentObject(authVM)
         .environmentObject(GamificationViewModel())
         .modelContainer(PersistenceController.preview.container)

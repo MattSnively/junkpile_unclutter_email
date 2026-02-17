@@ -17,6 +17,10 @@ struct Email: Codable, Identifiable, Equatable {
     /// Full HTML body of the email (for preview rendering)
     let htmlBody: String?
 
+    /// Gmail API's pre-sanitized snippet — plain text preview with no HTML/CSS.
+    /// Preferred over stripping HTML from htmlBody to avoid CSS leakage in previews.
+    let snippet: String?
+
     /// Extracted unsubscribe URL (from List-Unsubscribe header or email body)
     let unsubscribeUrl: String?
 

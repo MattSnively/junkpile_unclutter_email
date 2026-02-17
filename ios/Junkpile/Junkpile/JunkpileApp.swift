@@ -110,7 +110,7 @@ struct MainTabView: View {
     var body: some View {
         TabView(selection: $selectedTab) {
             // Home tab - Dashboard with stats and quick actions
-            HomeView()
+            HomeView(selectedTab: $selectedTab)
                 .tabItem {
                     Label(Tab.home.rawValue, systemImage: Tab.home.iconName)
                 }

@@ -124,6 +124,7 @@ final class GamificationService {
     }
 
     /// Updates profile statistics after a session completes.
+    /// Performs an explicit save to ensure stats survive app termination.
     /// - Parameter session: The completed session
     func updateProfileStats(session: Session) {
         guard let profile = getCurrentProfile() else { return }
@@ -131,6 +132,8 @@ final class GamificationService {
         profile.totalSessionsCompleted += 1
         profile.lastActivityDate = Date()
 
+        // Explicit save to ensure session stats persist even if the app
+        // is terminated before the next auto-save cycle
         try? modelContext.save()
     }
 
