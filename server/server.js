@@ -435,11 +435,14 @@ app.post('/api/auth/connect-gmail', async (req, res) => {
         // was obtained with the iOS client ID + custom-scheme redirect URI.
         const tokens = await exchangeMobileAuthCode(code);
 
-        // Fetch the Gmail user's email to store alongside the tokens.
-        // Access tokens are client-agnostic, so we reuse the web oauth2Client.
+        // Fetch the Gmail user's email address.
+        // The connect-gmail flow only requests Gmail scopes (no email/profile),
+        // so we can't use oauth2.userinfo. Use gmail.users.getProfile instead,
+        // which only requires the gmail.readonly scope.
         oauth2Client.setCredentials({ access_token: tokens.access_token });
-        const oauth2 = google.oauth2({ version: 'v2', auth: oauth2Client });
-        const userInfo = await oauth2.userinfo.get();
+        const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
+        const profile = await gmail.users.getProfile({ userId: 'me' });
+        const gmailEmail = profile.data.emailAddress;
 
         // Store the Gmail tokens on the user record
         const user = await userStore.findById(sessionPayload.userId);
@@ -462,13 +465,13 @@ app.post('/api/auth/connect-gmail', async (req, res) => {
                 refresh_token: tokens.refresh_token,
                 expiry_date: expiryDate
             },
-            gmailEmail: userInfo.data.email
+            gmailEmail: gmailEmail
         });
 
         // Return tokens to the app so it can use them directly for Gmail API calls
         res.json({
             success: true,
-            email: userInfo.data.email,
+            email: gmailEmail,
             access_token: tokens.access_token,
             refresh_token: tokens.refresh_token,
             expires_in: tokens.expires_in || 3600
