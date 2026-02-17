@@ -42,16 +42,38 @@ const oauth2Client = new google.auth.OAuth2(
     process.env.GMAIL_REDIRECT_URI || 'http://localhost:3000/auth/google/callback'
 );
 
-// Mobile OAuth2 Client — used for iOS token exchange.
-// iOS apps obtain an auth code using the iOS OAuth client ID and a custom-scheme
-// redirect URI. The token exchange must use the SAME client ID + redirect URI,
-// otherwise Google rejects it with `unauthorized_client`.
-// No client secret is needed for iOS (public) OAuth clients.
-const mobileOauth2Client = new google.auth.OAuth2(
-    process.env.GMAIL_IOS_CLIENT_ID,
-    null, // iOS clients are public — no client secret
-    'com.junkpile.app:/oauth2callback'
-);
+/**
+ * Exchange a mobile auth code directly with Google's token endpoint.
+ * The googleapis OAuth2 library doesn't handle public (secretless) clients
+ * correctly, so we POST to the token endpoint ourselves.
+ *
+ * @param {string} code - Authorization code from the iOS app
+ * @returns {Object} Token response with access_token, refresh_token, etc.
+ */
+async function exchangeMobileAuthCode(code) {
+    const params = new URLSearchParams({
+        code,
+        client_id: process.env.GMAIL_IOS_CLIENT_ID,
+        redirect_uri: 'com.junkpile.app:/oauth2callback',
+        grant_type: 'authorization_code'
+        // No client_secret — iOS OAuth clients are public
+    });
+
+    const response = await fetch('https://oauth2.googleapis.com/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: params.toString()
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+        const errMsg = data.error_description || data.error || 'Token exchange failed';
+        throw new Error(errMsg);
+    }
+
+    return data;
+}
 
 // Initialize data file, creating the data/ directory if it doesn't exist.
 // The data/ directory is gitignored, so it won't exist on first deploy.
@@ -102,14 +124,15 @@ app.post('/api/auth/mobile', async (req, res) => {
     }
 
     try {
-        // Exchange the authorization code for tokens using the mobile OAuth client.
-        // The iOS app obtained this code via the iOS client ID + custom-scheme redirect,
-        // so we must use the matching mobile client for the exchange.
-        const { tokens } = await mobileOauth2Client.getToken(code);
+        // Exchange the authorization code via direct POST to Google's token endpoint.
+        // We can't use the googleapis OAuth2 library here because iOS clients are
+        // public (no secret), and the library doesn't handle that correctly.
+        const tokens = await exchangeMobileAuthCode(code);
 
-        // Get user info to return email
-        mobileOauth2Client.setCredentials(tokens);
-        const oauth2 = google.oauth2({ version: 'v2', auth: mobileOauth2Client });
+        // Get user info using the access token.
+        // Access tokens are client-agnostic, so we can use the web oauth2Client.
+        oauth2Client.setCredentials({ access_token: tokens.access_token });
+        const oauth2 = google.oauth2({ version: 'v2', auth: oauth2Client });
         const userInfo = await oauth2.userinfo.get();
 
         // Return tokens to the mobile app
@@ -118,9 +141,7 @@ app.post('/api/auth/mobile', async (req, res) => {
             success: true,
             access_token: tokens.access_token,
             refresh_token: tokens.refresh_token,
-            expires_in: tokens.expiry_date
-                ? Math.floor((tokens.expiry_date - Date.now()) / 1000)
-                : 3600,
+            expires_in: tokens.expires_in || 3600,
             token_type: 'Bearer',
             email: userInfo.data.email,
             name: userInfo.data.name,
@@ -409,14 +430,15 @@ app.post('/api/auth/connect-gmail', async (req, res) => {
     }
 
     try {
-        // Exchange the Google auth code for Gmail tokens using the mobile client.
+        // Exchange the Google auth code via direct POST to Google's token endpoint.
         // Apple Sign-In users connect Gmail from the iOS app, so the auth code
         // was obtained with the iOS client ID + custom-scheme redirect URI.
-        const { tokens } = await mobileOauth2Client.getToken(code);
+        const tokens = await exchangeMobileAuthCode(code);
 
-        // Fetch the Gmail user's email to store alongside the tokens
-        mobileOauth2Client.setCredentials(tokens);
-        const oauth2 = google.oauth2({ version: 'v2', auth: mobileOauth2Client });
+        // Fetch the Gmail user's email to store alongside the tokens.
+        // Access tokens are client-agnostic, so we reuse the web oauth2Client.
+        oauth2Client.setCredentials({ access_token: tokens.access_token });
+        const oauth2 = google.oauth2({ version: 'v2', auth: oauth2Client });
         const userInfo = await oauth2.userinfo.get();
 
         // Store the Gmail tokens on the user record
@@ -428,11 +450,17 @@ app.post('/api/auth/connect-gmail', async (req, res) => {
             });
         }
 
+        // Convert expires_in (seconds) to an absolute expiry_date (ms timestamp)
+        // for consistent storage with the rest of the codebase.
+        const expiryDate = tokens.expires_in
+            ? Date.now() + (tokens.expires_in * 1000)
+            : null;
+
         await userStore.updateUser(user.id, {
             gmailTokens: {
                 access_token: tokens.access_token,
                 refresh_token: tokens.refresh_token,
-                expiry_date: tokens.expiry_date
+                expiry_date: expiryDate
             },
             gmailEmail: userInfo.data.email
         });
@@ -443,9 +471,7 @@ app.post('/api/auth/connect-gmail', async (req, res) => {
             email: userInfo.data.email,
             access_token: tokens.access_token,
             refresh_token: tokens.refresh_token,
-            expires_in: tokens.expiry_date
-                ? Math.floor((tokens.expiry_date - Date.now()) / 1000)
-                : 3600
+            expires_in: tokens.expires_in || 3600
         });
 
     } catch (error) {
