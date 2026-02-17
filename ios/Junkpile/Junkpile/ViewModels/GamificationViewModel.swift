@@ -57,6 +57,8 @@ final class GamificationViewModel: ObservableObject {
     // MARK: - Data Loading
 
     /// Loads all gamification data from persistence.
+    /// On first load, runs a one-time migration to merge duplicate PlayerProfile
+    /// records caused by email case mismatches (e.g., "User@Gmail.com" vs "user@gmail.com").
     func loadData() {
         guard let context = modelContext else { return }
 
@@ -65,6 +67,12 @@ final class GamificationViewModel: ObservableObject {
         // Load or create profile
         if let email = KeychainService.shared.getUserEmail() {
             let displayName = KeychainService.shared.getUserName() ?? email
+
+            // One-time migration: merge any duplicate profiles from email case mismatch.
+            // Before the lowercase normalization fix, signing in with different casing
+            // (e.g., "User@Gmail.com" vs "user@gmail.com") could create separate profiles.
+            mergeDuplicateProfiles(for: email, in: context)
+
             profile = context.getOrCreateProfile(email: email, displayName: displayName)
         }
 
@@ -77,6 +85,59 @@ final class GamificationViewModel: ObservableObject {
             .compactMap { $0.achievement }
 
         isLoading = false
+    }
+
+    /// Merges duplicate PlayerProfile records that share the same email (case-insensitive).
+    /// Sums stats from all duplicates into the first profile, then deletes the rest.
+    /// This is a no-op if only one profile exists for the email.
+    private func mergeDuplicateProfiles(for email: String, in context: ModelContext) {
+        let normalizedEmail = email.lowercased()
+
+        // Fetch ALL profiles to find case-insensitive matches, since #Predicate
+        // doesn't support case-insensitive string comparison
+        let descriptor = FetchDescriptor<PlayerProfile>()
+        guard let allProfiles = try? context.fetch(descriptor) else { return }
+
+        // Filter to profiles matching this email (case-insensitive)
+        let matchingProfiles = allProfiles.filter { $0.email.lowercased() == normalizedEmail }
+
+        // Nothing to merge if 0 or 1 profiles
+        guard matchingProfiles.count > 1 else { return }
+
+        // Keep the first profile as the canonical one, merge stats from the rest
+        let primary = matchingProfiles[0]
+        let duplicates = matchingProfiles.dropFirst()
+
+        for duplicate in duplicates {
+            // Sum additive stats into the primary profile
+            primary.totalXP += duplicate.totalXP
+            primary.totalPoints += duplicate.totalPoints
+            primary.lifetimeUnsubscribes += duplicate.lifetimeUnsubscribes
+            primary.lifetimeKeeps += duplicate.lifetimeKeeps
+            primary.totalSessionsCompleted += duplicate.totalSessionsCompleted
+
+            // Keep the higher streak values
+            primary.longestStreak = max(primary.longestStreak, duplicate.longestStreak)
+            primary.currentStreak = max(primary.currentStreak, duplicate.currentStreak)
+
+            // Keep the most recent activity date
+            if let dupDate = duplicate.lastActivityDate {
+                if let primaryDate = primary.lastActivityDate {
+                    primary.lastActivityDate = max(primaryDate, dupDate)
+                } else {
+                    primary.lastActivityDate = dupDate
+                }
+            }
+
+            // Delete the duplicate profile
+            context.delete(duplicate)
+        }
+
+        // Normalize the email on the canonical profile and recalculate level
+        primary.email = normalizedEmail
+        primary.currentLevel = PlayerProfile.calculateLevel(forXP: primary.totalXP)
+
+        try? context.save()
     }
 
     /// Refreshes the profile data from persistence.

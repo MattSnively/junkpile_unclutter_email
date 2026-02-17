@@ -95,12 +95,13 @@ final class KeychainService {
 
     // MARK: - User Info Storage
 
-    /// Stores the user's email address.
+    /// Stores the user's email address, normalized to lowercase to prevent
+    /// duplicate PlayerProfile records from case mismatches (e.g., "User@Gmail.com" vs "user@gmail.com").
     /// - Parameter email: The user's email
     /// - Returns: True if storage was successful
     @discardableResult
     func setUserEmail(_ email: String) -> Bool {
-        return set(email, forKey: Key.userEmail.rawValue)
+        return set(email.lowercased(), forKey: Key.userEmail.rawValue)
     }
 
     /// Retrieves the stored user email.

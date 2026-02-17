@@ -145,22 +145,29 @@ final class PersistenceController {
 extension ModelContext {
 
     /// Fetches the player profile, creating one if it doesn't exist.
+    /// Normalizes email to lowercase to avoid duplicate profiles from case mismatches.
     /// - Parameters:
     ///   - email: User's email address
     ///   - displayName: User's display name
     /// - Returns: The PlayerProfile for this user
     func getOrCreateProfile(email: String, displayName: String) -> PlayerProfile {
+        // Normalize email to lowercase to prevent duplicate profiles
+        // from case mismatches (e.g., "User@Gmail.com" vs "user@gmail.com")
+        let normalizedEmail = email.lowercased()
+
         let descriptor = FetchDescriptor<PlayerProfile>(
-            predicate: #Predicate { $0.email == email }
+            predicate: #Predicate { $0.email == normalizedEmail }
         )
 
         if let existingProfile = try? fetch(descriptor).first {
             return existingProfile
         }
 
-        // Create a new profile
-        let newProfile = PlayerProfile(email: email, displayName: displayName)
+        // Create a new profile and save immediately to prevent data loss
+        // if the app terminates before the next auto-save
+        let newProfile = PlayerProfile(email: normalizedEmail, displayName: displayName)
         insert(newProfile)
+        try? save()
         return newProfile
     }
 

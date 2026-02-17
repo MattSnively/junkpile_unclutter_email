@@ -165,16 +165,24 @@ struct EmailCardView: View {
         }
     }
 
-    /// Email preview section
+    /// Email preview section.
+    /// Prefers Gmail API's pre-sanitized snippet (no HTML/CSS) over stripping
+    /// HTML from the body, which can leak CSS rules into the preview text.
     private var previewSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Preview")
                 .font(.caption)
                 .foregroundColor(.secondary)
 
-            // Show email preview or a placeholder
-            if let htmlBody = email.htmlBody, !htmlBody.isEmpty {
-                // Strip HTML and show plain text preview
+            // Prefer snippet (pre-sanitized by Gmail) to avoid CSS leakage.
+            // Fall back to HTML stripping only if snippet is unavailable.
+            if let snippet = email.snippet, !snippet.isEmpty {
+                Text(snippet)
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                    .lineLimit(8)
+            } else if let htmlBody = email.htmlBody, !htmlBody.isEmpty {
+                // Fallback: strip HTML tags and show plain text preview
                 Text(htmlBody.strippingHTML().prefix(300))
                     .font(.subheadline)
                     .foregroundColor(.secondary)
@@ -213,7 +221,7 @@ struct EmailCardView: View {
 
 extension String {
     /// Strips HTML tags from the string and returns plain text.
-    /// Used for displaying email preview without HTML formatting.
+    /// Used as a fallback for displaying email preview when Gmail's snippet is unavailable.
     func strippingHTML() -> String {
         // Remove <style> and <script> blocks entirely (tags + content).
         // Without this, CSS rules leak into the preview as visible text.
@@ -225,6 +233,26 @@ extension String {
         result = result.replacingOccurrences(
             of: "<script[^>]*>[\\s\\S]*?</script>",
             with: " ",
+            options: .regularExpression
+        )
+
+        // Remove HTML comments (e.g., <!-- ... -->) which can contain CSS or conditional markup
+        result = result.replacingOccurrences(
+            of: "<!--[\\s\\S]*?-->",
+            with: " ",
+            options: .regularExpression
+        )
+
+        // Remove inline style attributes (style="..." or style='...')
+        // which can leak CSS property text into the preview
+        result = result.replacingOccurrences(
+            of: "style\\s*=\\s*\"[^\"]*\"",
+            with: "",
+            options: .regularExpression
+        )
+        result = result.replacingOccurrences(
+            of: "style\\s*=\\s*'[^']*'",
+            with: "",
             options: .regularExpression
         )
 
@@ -263,6 +291,7 @@ extension String {
         sender: "Newsletter Company",
         subject: "Your Weekly Update - Don't miss these great deals and exclusive offers",
         htmlBody: "<p>Hello! Here's your weekly newsletter with all the latest updates and deals you don't want to miss. Check out our new products and exclusive member offers.</p>",
+        snippet: "Hello! Here's your weekly newsletter with all the latest updates and deals you don't want to miss.",
         unsubscribeUrl: "https://example.com/unsubscribe",
         rawHeaders: nil
     ))
@@ -276,6 +305,7 @@ extension String {
             sender: "Important Service",
             subject: "Account Security Update",
             htmlBody: "<p>Important information about your account security.</p>",
+            snippet: "Important information about your account security.",
             unsubscribeUrl: "https://example.com/unsubscribe",
             rawHeaders: nil
         ),
@@ -292,6 +322,7 @@ extension String {
             sender: "Spam Newsletter",
             subject: "Buy now! Limited time offer!",
             htmlBody: "<p>Don't miss this amazing deal!</p>",
+            snippet: "Don't miss this amazing deal!",
             unsubscribeUrl: "https://example.com/unsubscribe",
             rawHeaders: nil
         ),
@@ -307,6 +338,7 @@ extension String {
         sender: "Some Sender",
         subject: "A message without unsubscribe option",
         htmlBody: "<p>This email doesn't have an unsubscribe link.</p>",
+        snippet: "This email doesn't have an unsubscribe link.",
         unsubscribeUrl: nil,
         rawHeaders: nil
     ))

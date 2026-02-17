@@ -333,10 +333,10 @@ extension View {
     @Previewable @State var currentIndex = 0
 
     let sampleEmails = [
-        Email(id: "1", sender: "Newsletter One", subject: "First Email Subject", htmlBody: "<p>Preview 1</p>", unsubscribeUrl: "https://example.com/unsub", rawHeaders: nil),
-        Email(id: "2", sender: "Newsletter Two", subject: "Second Email Subject", htmlBody: "<p>Preview 2</p>", unsubscribeUrl: "https://example.com/unsub", rawHeaders: nil),
-        Email(id: "3", sender: "Newsletter Three", subject: "Third Email Subject", htmlBody: "<p>Preview 3</p>", unsubscribeUrl: "https://example.com/unsub", rawHeaders: nil),
-        Email(id: "4", sender: "Newsletter Four", subject: "Fourth Email Subject", htmlBody: "<p>Preview 4</p>", unsubscribeUrl: nil, rawHeaders: nil)
+        Email(id: "1", sender: "Newsletter One", subject: "First Email Subject", htmlBody: "<p>Preview 1</p>", snippet: "Preview 1", unsubscribeUrl: "https://example.com/unsub", rawHeaders: nil),
+        Email(id: "2", sender: "Newsletter Two", subject: "Second Email Subject", htmlBody: "<p>Preview 2</p>", snippet: "Preview 2", unsubscribeUrl: "https://example.com/unsub", rawHeaders: nil),
+        Email(id: "3", sender: "Newsletter Three", subject: "Third Email Subject", htmlBody: "<p>Preview 3</p>", snippet: "Preview 3", unsubscribeUrl: "https://example.com/unsub", rawHeaders: nil),
+        Email(id: "4", sender: "Newsletter Four", subject: "Fourth Email Subject", htmlBody: "<p>Preview 4</p>", snippet: "Preview 4", unsubscribeUrl: nil, rawHeaders: nil)
     ]
 
     return VStack {

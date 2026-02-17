@@ -128,6 +128,9 @@ class GmailService {
                 sender: this.cleanSender(from),
                 subject: subject,
                 htmlBody: htmlBody,
+                // Gmail API's pre-sanitized snippet — plain text with no HTML/CSS.
+                // Used as the primary preview text on iOS to avoid CSS leakage.
+                snippet: message.snippet || '',
                 // primaryUrl maintains backward compatibility with iOS app
                 unsubscribeUrl: unsubscribeData.primaryUrl,
                 // Full unsubscribe data for server-side execution
