@@ -75,6 +75,38 @@ async function exchangeMobileAuthCode(code) {
     return data;
 }
 
+/**
+ * Refresh a mobile token directly with Google's token endpoint.
+ * Same reason as exchangeMobileAuthCode — the googleapis library can't
+ * refresh tokens issued to the public iOS client.
+ *
+ * @param {string} refreshToken - The refresh token from the iOS app
+ * @returns {Object} Token response with access_token, expires_in, etc.
+ */
+async function refreshMobileToken(refreshToken) {
+    const params = new URLSearchParams({
+        refresh_token: refreshToken,
+        client_id: process.env.GMAIL_IOS_CLIENT_ID,
+        grant_type: 'refresh_token'
+        // No client_secret — iOS OAuth clients are public
+    });
+
+    const response = await fetch('https://oauth2.googleapis.com/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: params.toString()
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+        const errMsg = data.error_description || data.error || 'Token refresh failed';
+        throw new Error(errMsg);
+    }
+
+    return data;
+}
+
 // Initialize data file, creating the data/ directory if it doesn't exist.
 // The data/ directory is gitignored, so it won't exist on first deploy.
 async function initDataFile() {
@@ -163,7 +195,7 @@ app.post('/api/auth/mobile', async (req, res) => {
  * stored tokens (Apple users who connected Gmail).
  */
 app.post('/api/auth/refresh', async (req, res) => {
-    const { refresh_token } = req.body;
+    const { refresh_token, platform } = req.body;
 
     // Check if this is an Apple user refreshing via their session token.
     // Apple users' Gmail refresh tokens are stored server-side.
@@ -183,25 +215,29 @@ app.post('/api/auth/refresh', async (req, res) => {
                     });
                 }
 
-                // Use the server-stored refresh token to get a new access token
-                oauth2Client.setCredentials({ refresh_token: user.gmailTokens.refresh_token });
-                const { credentials } = await oauth2Client.refreshAccessToken();
+                // Use the server-stored refresh token to get a new access token.
+                // Gmail tokens for Apple users were obtained via the iOS client,
+                // so we must refresh via direct POST (no client secret).
+                const data = await refreshMobileToken(user.gmailTokens.refresh_token);
+
+                // Convert expires_in to absolute timestamp for storage
+                const expiryDate = data.expires_in
+                    ? Date.now() + (data.expires_in * 1000)
+                    : null;
 
                 // Update the stored tokens on the user record
                 await userStore.updateUser(user.id, {
                     gmailTokens: {
                         ...user.gmailTokens,
-                        access_token: credentials.access_token,
-                        expiry_date: credentials.expiry_date
+                        access_token: data.access_token,
+                        expiry_date: expiryDate
                     }
                 });
 
                 return res.json({
                     success: true,
-                    access_token: credentials.access_token,
-                    expires_in: credentials.expiry_date
-                        ? Math.floor((credentials.expiry_date - Date.now()) / 1000)
-                        : 3600
+                    access_token: data.access_token,
+                    expires_in: data.expires_in || 3600
                 });
 
             } catch (error) {
@@ -214,7 +250,7 @@ app.post('/api/auth/refresh', async (req, res) => {
         }
     }
 
-    // Google user — use the client-provided refresh token (existing behavior)
+    // Google user — use the client-provided refresh token
     if (!refresh_token) {
         return res.status(400).json({
             success: false,
@@ -223,6 +259,19 @@ app.post('/api/auth/refresh', async (req, res) => {
     }
 
     try {
+        // iOS tokens were issued to the public iOS client, so we must refresh
+        // via direct POST (same as exchangeMobileAuthCode). Web tokens use the
+        // googleapis library with the web client secret.
+        if (platform === 'ios') {
+            const data = await refreshMobileToken(refresh_token);
+            return res.json({
+                success: true,
+                access_token: data.access_token,
+                expires_in: data.expires_in || 3600
+            });
+        }
+
+        // Web client refresh (existing behavior)
         oauth2Client.setCredentials({ refresh_token });
         const { credentials } = await oauth2Client.refreshAccessToken();
 

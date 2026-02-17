@@ -79,7 +79,8 @@ final class APIService {
 
         let endpoint = "/api/auth/refresh"
         let body: [String: Any] = [
-            "refresh_token": refreshToken
+            "refresh_token": refreshToken,
+            "platform": "ios"
         ]
 
         let response: RefreshTokenResponse = try await post(endpoint, body: body, authenticated: false)
