@@ -83,7 +83,7 @@ struct StatsView: View {
                 // Total emails
                 statItem(
                     value: "\(viewModel.totalEmails.localized)",
-                    label: "Emails Processed",
+                    label: "Emails Swiped",
                     icon: "envelope.fill"
                 )
 
@@ -130,7 +130,7 @@ struct StatsView: View {
             Image(systemName: icon)
                 .font(.title2)
                 .foregroundColor(color)
-                .frame(width: 40)
+                .frame(width: 32)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(value)
@@ -141,6 +141,8 @@ struct StatsView: View {
                 Text(label)
                     .font(.caption)
                     .foregroundColor(.secondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
             }
 
             Spacer()

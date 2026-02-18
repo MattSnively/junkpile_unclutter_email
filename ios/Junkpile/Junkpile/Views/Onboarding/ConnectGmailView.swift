@@ -91,12 +91,14 @@ struct ConnectGmailView: View {
         .cornerRadius(12)
     }
 
-    /// Permission row with icon and text
+    /// Permission row with icon and text — icon aligns to first line of text
     private func permissionRow(icon: String, text: String) -> some View {
-        HStack(spacing: 8) {
+        HStack(alignment: .top, spacing: 8) {
             Image(systemName: icon)
+                .font(.subheadline)
                 .foregroundColor(.secondary)
                 .frame(width: 20)
+                .padding(.top, 2) // Align icon with first line of text baseline
 
             Text(text)
                 .font(.subheadline)
@@ -115,17 +117,17 @@ struct ConnectGmailView: View {
                     await authViewModel.connectGmail(from: authViewModel.keyWindow)
                 }
             } label: {
-                HStack(spacing: 8) {
+                HStack(spacing: 12) {
                     Image("GoogleG")
                         .resizable()
                         .scaledToFit()
-                        .frame(width: 20, height: 20)
+                        .frame(width: 24, height: 24)
 
                     Text(authViewModel.isLoading ? "Connecting..." : "Connect Gmail")
                         .font(.headline)
                 }
+                .frame(maxWidth: .infinity, alignment: .center)
                 .foregroundColor(Theme.solidFillForeground)
-                .frame(maxWidth: .infinity)
                 .frame(height: 56)
                 .background(Theme.solidFill)
                 .cornerRadius(12)

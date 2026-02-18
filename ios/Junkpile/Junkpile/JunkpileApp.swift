@@ -48,6 +48,19 @@ struct RootView: View {
 
     @EnvironmentObject var authViewModel: AuthViewModel
 
+    /// User's preferred color scheme: 0=System, 1=Light, 2=Dark
+    @AppStorage("colorSchemePreference") private var colorSchemePreference = 0
+
+    /// Maps the stored integer preference to an optional ColorScheme.
+    /// Returns nil for "System" so SwiftUI follows the device setting.
+    private var preferredColorScheme: ColorScheme? {
+        switch colorSchemePreference {
+        case 1: return .light
+        case 2: return .dark
+        default: return nil
+        }
+    }
+
     var body: some View {
         Group {
             switch authViewModel.authState {
@@ -70,6 +83,7 @@ struct RootView: View {
             }
         }
         .animation(.easeInOut, value: authViewModel.authState)
+        .preferredColorScheme(preferredColorScheme)
     }
 }
 

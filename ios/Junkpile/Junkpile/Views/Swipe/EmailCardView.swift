@@ -23,9 +23,6 @@ struct EmailCardView: View {
 
     // MARK: - Constants
 
-    /// Threshold in pixels for showing swipe indicators
-    private let indicatorThreshold: CGFloat = 50
-
     /// Maximum rotation angle in degrees
     private let maxRotation: Double = 30
 
@@ -38,11 +35,10 @@ struct EmailCardView: View {
 
             // Card content
             VStack(alignment: .leading, spacing: 16) {
-                // Sender and indicator row
+                // Sender row
                 HStack {
                     senderSection
                     Spacer()
-                    swipeIndicator
                 }
 
                 // Subject
@@ -103,11 +99,12 @@ struct EmailCardView: View {
             .shadow(color: Theme.shadow(opacity: 0.1), radius: 10, x: 0, y: 5)
     }
 
-    /// Border color changes based on swipe direction
+    /// Border color changes based on swipe direction.
+    /// Uses 50px threshold consistent with the floating pill in EmailCardStack.
     private var borderColor: Color {
-        if offset.width > indicatorThreshold {
+        if offset.width > 50 {
             return .green // Keep
-        } else if offset.width < -indicatorThreshold {
+        } else if offset.width < -50 {
             return .red // Unsubscribe
         }
         return Theme.cardBorder
@@ -124,30 +121,6 @@ struct EmailCardView: View {
                 .font(.headline)
                 .foregroundColor(.primary)
                 .lineLimit(1)
-        }
-    }
-
-    /// Swipe direction indicator
-    @ViewBuilder
-    private var swipeIndicator: some View {
-        if offset.width > indicatorThreshold {
-            // Keep indicator
-            HStack(spacing: 4) {
-                Text("KEEP")
-                    .font(.caption.bold())
-                Image(systemName: "checkmark.circle.fill")
-            }
-            .foregroundColor(.green)
-            .transition(.opacity)
-        } else if offset.width < -indicatorThreshold {
-            // Unsubscribe indicator
-            HStack(spacing: 4) {
-                Image(systemName: "xmark.circle.fill")
-                Text("UNSUB")
-                    .font(.caption.bold())
-            }
-            .foregroundColor(.red)
-            .transition(.opacity)
         }
     }
 

@@ -17,6 +17,10 @@ struct EmailCardStack: View {
 
     // MARK: - State
 
+    /// Respects the user's Reduce Motion accessibility setting.
+    /// When enabled, disables the spring scale animation on the swipe indicator pill.
+    @Environment(\.accessibilityReduceMotion) var reduceMotion
+
     /// Current drag offset for the top card
     @State private var dragOffset: CGSize = .zero
 
@@ -52,6 +56,9 @@ struct EmailCardStack: View {
     }
 
     // MARK: - Constants
+
+    /// Threshold in pixels for showing the floating swipe indicator pill
+    private let indicatorThreshold: CGFloat = 50
 
     /// Threshold in pixels to trigger a swipe decision.
     /// Lowered from 100 to 75 to feel more responsive while
@@ -90,6 +97,48 @@ struct EmailCardStack: View {
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+            // Floating pill indicator above the card stack — shows KEEP/UNSUB
+            // with spring scale animation as the user drags past threshold
+            .overlay(alignment: .top) {
+                swipeIndicatorPill
+            }
+        }
+    }
+
+    // MARK: - Swipe Indicator Pill
+
+    /// Floating colored capsule that appears above the card when dragging past threshold.
+    /// Scales up from 0.5→1.0 proportionally with drag distance for a bouncy reveal.
+    @ViewBuilder
+    private var swipeIndicatorPill: some View {
+        let absWidth = abs(dragOffset.width)
+        let pastThreshold = absWidth > indicatorThreshold
+
+        if pastThreshold {
+            // Calculate scale: 0.5 at threshold, 1.0 at swipeThreshold (75px)
+            let progress = min((absWidth - indicatorThreshold) / (swipeThreshold - indicatorThreshold), 1.0)
+            let scale = 0.5 + (progress * 0.5)
+
+            let isKeep = dragOffset.width > 0
+            let pillColor: Color = isKeep ? .green : .red
+            let pillText = isKeep ? "KEEP" : "UNSUB"
+            let pillIcon = isKeep ? "checkmark.circle.fill" : "xmark.circle.fill"
+
+            HStack(spacing: 6) {
+                Image(systemName: pillIcon)
+                    .font(.subheadline.bold())
+                Text(pillText)
+                    .font(.subheadline.bold())
+            }
+            .foregroundColor(.white)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
+            .background(pillColor)
+            .clipShape(Capsule())
+            .scaleEffect(reduceMotion ? 1.0 : scale)
+            .animation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.6), value: absWidth)
+            .offset(y: -10) // Float above the top card
+            .accessibilityHidden(true) // VoiceOver users have custom actions
         }
     }
 
