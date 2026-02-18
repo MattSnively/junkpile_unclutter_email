@@ -11,6 +11,9 @@ struct SettingsView: View {
 
     // MARK: - State
 
+    /// User's preferred color scheme: 0=System, 1=Light, 2=Dark
+    @AppStorage("colorSchemePreference") private var colorSchemePreference = 0
+
     /// Whether streak notifications are enabled — defaults to false since no
     /// permission is requested until the user explicitly toggles this on.
     @AppStorage("streakNotificationsEnabled") private var streakNotificationsEnabled = false
@@ -67,6 +70,9 @@ struct SettingsView: View {
 
                 // Notifications section
                 notificationsSection
+
+                // Appearance section
+                appearanceSection
 
                 // Data section
                 dataSection
@@ -324,6 +330,20 @@ struct SettingsView: View {
         }
     }
 
+    /// Appearance section — lets the user override system color scheme
+    private var appearanceSection: some View {
+        Section {
+            Picker("Appearance", selection: $colorSchemePreference) {
+                Text("System").tag(0)
+                Text("Light").tag(1)
+                Text("Dark").tag(2)
+            }
+            .pickerStyle(.segmented)
+        } header: {
+            Text("Appearance")
+        }
+    }
+
     /// Data and privacy section
     private var dataSection: some View {
         Section {
@@ -363,18 +383,20 @@ struct SettingsView: View {
                 }
             }
 
-            // Data info
-            HStack {
-                Image(systemName: "info.circle.fill")
-                    .foregroundColor(.blue)
-
-                Text("Your Data")
-
-                Spacer()
-            }
-            .contentShape(Rectangle())
-            .onTapGesture {
+            // Data info — uses Button instead of .onTapGesture to avoid
+            // double-tap glitch caused by List's competing gesture recognizer
+            Button {
                 showingDataExport = true
+            } label: {
+                HStack {
+                    Image(systemName: "info.circle.fill")
+                        .foregroundColor(.blue)
+
+                    Text("Your Data")
+                        .foregroundColor(.primary)
+
+                    Spacer()
+                }
             }
 
             // Delete Account — requires double confirmation to prevent accidents.

@@ -162,6 +162,23 @@ struct SwipeView: View {
     /// they understand the mechanic and hints stay hidden permanently.
     @AppStorage("hasSeenSwipeHints") private var hasSeenSwipeHints = false
 
+    // MARK: - Points Animation State
+
+    /// Respects the user's Reduce Motion accessibility setting
+    @Environment(\.accessibilityReduceMotion) var reduceMotion
+
+    /// Number of points earned for the most recent swipe (displayed in animation)
+    @State private var pointsEarned: Int = 0
+
+    /// Whether the points animation overlay is currently visible
+    @State private var showPointsAnimation = false
+
+    /// Vertical offset for the float-up animation (0 → -80)
+    @State private var pointsAnimationOffset: CGFloat = 0
+
+    /// Opacity for the fade-out animation (1 → 0)
+    @State private var pointsAnimationOpacity: Double = 1.0
+
     var body: some View {
         VStack(spacing: 0) {
             // Progress bar
@@ -174,12 +191,25 @@ struct SwipeView: View {
                 .padding(.horizontal, 20)
                 .padding(.top, 12)
 
-            // Card stack
-            EmailCardStack(
-                emails: viewModel.emails,
-                currentIndex: $viewModel.currentIndex
-            ) { email, action in
-                viewModel.recordDecision(email: email, action: action)
+            // Card stack wrapped in ZStack for points animation overlay
+            ZStack {
+                EmailCardStack(
+                    emails: viewModel.emails,
+                    currentIndex: $viewModel.currentIndex
+                ) { email, action in
+                    viewModel.recordDecision(email: email, action: action)
+                    triggerPointsAnimation(for: action)
+                }
+
+                // "+X pts" float-up text — decorative, hidden from VoiceOver
+                if showPointsAnimation {
+                    Text("+\(pointsEarned) pts")
+                        .font(.title2.bold())
+                        .foregroundColor(.primary)
+                        .offset(y: pointsAnimationOffset)
+                        .opacity(pointsAnimationOpacity)
+                        .accessibilityHidden(true)
+                }
             }
             .padding(.vertical, 20)
 
@@ -298,6 +328,39 @@ struct SwipeView: View {
         .padding(.horizontal, 40)
         // Hints are redundant for VoiceOver — card has custom actions
         .accessibilityHidden(true)
+    }
+
+    // MARK: - Points Animation
+
+    /// Triggers the "+X pts" float-up animation after a swipe decision.
+    /// Unsubscribe earns 10 points, Keep earns 5 points.
+    /// Reduce Motion: shows text statically for 0.8s with no movement.
+    private func triggerPointsAnimation(for action: DecisionAction) {
+        // Determine points based on action
+        pointsEarned = action == .unsubscribe ? Decision.unsubscribePoints : Decision.keepPoints
+
+        // Reset animation state
+        pointsAnimationOffset = 0
+        pointsAnimationOpacity = 1.0
+        showPointsAnimation = true
+
+        if reduceMotion {
+            // Static display for 0.8s — no movement, just show and hide
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+                showPointsAnimation = false
+            }
+        } else {
+            // Animate offset upward and fade out over 1.2s
+            withAnimation(.easeOut(duration: 1.2)) {
+                pointsAnimationOffset = -80
+                pointsAnimationOpacity = 0
+            }
+
+            // Clean up after animation completes
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
+                showPointsAnimation = false
+            }
+        }
     }
 }
 

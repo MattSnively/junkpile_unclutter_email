@@ -76,24 +76,39 @@ struct SignInView: View {
                 .font(.system(size: 28, weight: .bold))
                 .foregroundColor(.primary)
 
-            Text("Choose how you'd like to sign in to start cleaning your inbox")
+            Text("Sign in with Apple to get started, then connect Gmail in the next step")
                 .font(.body)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
         }
     }
 
-    /// Sign-in button stack — Apple first (per Guideline 4.8), then Google
+    /// Sign-in button stack — Apple first (per Guideline 4.8), then Google.
+    /// Each button has an explanatory caption underneath.
     private var signInButtons: some View {
         VStack(spacing: 16) {
             // Sign in with Apple — primary, per Apple Guideline 4.8
-            appleSignInButton
+            VStack(spacing: 6) {
+                appleSignInButton
+
+                Text("Recommended — sign in with Apple, then connect Gmail")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+            }
 
             // "or" divider
             divider
 
             // Sign in with Google — secondary
-            googleSignInButton
+            VStack(spacing: 6) {
+                googleSignInButton
+
+                Text("Signs in and connects Gmail in one step")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+            }
         }
     }
 
@@ -148,7 +163,7 @@ struct SignInView: View {
                 .frame(height: 1)
 
             Text("or")
-                .font(.subheadline)
+                .font(.subheadline.weight(.medium))
                 .foregroundColor(.secondary)
 
             Rectangle()
