@@ -149,8 +149,10 @@ struct EmailCardView: View {
 
             // Prefer snippet (pre-sanitized by Gmail) to avoid CSS leakage.
             // Fall back to HTML stripping only if snippet is unavailable.
+            // Note: Gmail snippets can still contain HTML entities (&#39;, &amp;, etc.)
+            // so we decode them before display.
             if let snippet = email.snippet, !snippet.isEmpty {
-                Text(snippet)
+                Text(snippet.decodingHTMLEntities())
                     .font(.subheadline)
                     .foregroundColor(.secondary)
                     .lineLimit(8)
@@ -232,7 +234,8 @@ extension String {
         // Remove remaining HTML tags
         result = result.replacingOccurrences(of: "<[^>]+>", with: " ", options: .regularExpression)
 
-        // Decode common HTML entities
+        // Decode common HTML entities — includes smart quotes and
+        // typographic punctuation frequently used in marketing emails
         let entities: [String: String] = [
             "&nbsp;": " ",
             "&amp;": "&",
@@ -240,17 +243,108 @@ extension String {
             "&gt;": ">",
             "&quot;": "\"",
             "&#39;": "'",
+            "&apos;": "'",
+            "&#x27;": "'",
+            "&rsquo;": "\u{2019}",   // Right single quote (')
+            "&lsquo;": "\u{2018}",   // Left single quote (')
+            "&#8217;": "\u{2019}",   // Right single quote (decimal)
+            "&#8216;": "\u{2018}",   // Left single quote (decimal)
+            "&#x2019;": "\u{2019}",  // Right single quote (hex)
+            "&#x2018;": "\u{2018}",  // Left single quote (hex)
+            "&rdquo;": "\u{201D}",   // Right double quote (")
+            "&ldquo;": "\u{201C}",   // Left double quote (")
+            "&#8221;": "\u{201D}",   // Right double quote (decimal)
+            "&#8220;": "\u{201C}",   // Left double quote (decimal)
+            "&hellip;": "…",
+            "&#8230;": "…",
             "&mdash;": "—",
-            "&ndash;": "–"
+            "&ndash;": "–",
+            "&trade;": "™",
+            "&reg;": "®",
+            "&copy;": "©"
         ]
 
         for (entity, replacement) in entities {
             result = result.replacingOccurrences(of: entity, with: replacement)
         }
 
+        // Decode any remaining numeric entities (&#NNN; and &#xHHH;) not
+        // covered by the static map — converts to their Unicode characters
+        result = result.decodingNumericHTMLEntities()
+
         // Clean up whitespace
         result = result.replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
         result = result.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        return result
+    }
+
+    /// Decodes HTML entities in a string without stripping tags.
+    /// Used for Gmail API snippets which are pre-sanitized (no HTML tags)
+    /// but still contain encoded entities like &#39; and &amp;.
+    func decodingHTMLEntities() -> String {
+        var result = self
+
+        // Named entities commonly found in Gmail snippets
+        let entities: [String: String] = [
+            "&nbsp;": " ",
+            "&amp;": "&",
+            "&lt;": "<",
+            "&gt;": ">",
+            "&quot;": "\"",
+            "&#39;": "'",
+            "&apos;": "'",
+            "&#x27;": "'",
+            "&rsquo;": "\u{2019}",
+            "&lsquo;": "\u{2018}",
+            "&rdquo;": "\u{201D}",
+            "&ldquo;": "\u{201C}",
+            "&hellip;": "…",
+            "&mdash;": "—",
+            "&ndash;": "–",
+            "&trade;": "™",
+            "&reg;": "®",
+            "&copy;": "©"
+        ]
+
+        for (entity, replacement) in entities {
+            result = result.replacingOccurrences(of: entity, with: replacement)
+        }
+
+        // Decode any remaining numeric entities
+        return result.decodingNumericHTMLEntities()
+    }
+
+    /// Decodes remaining numeric HTML entities (&#NNN; and &#xHHH;) into
+    /// their corresponding Unicode characters. Handles any code point that
+    /// the static entity map above doesn't cover.
+    func decodingNumericHTMLEntities() -> String {
+        var result = self
+
+        // Decimal entities: &#8217; → Unicode scalar 8217 → '
+        let decimalPattern = try? NSRegularExpression(pattern: "&#(\\d+);")
+        if let matches = decimalPattern?.matches(in: result, range: NSRange(result.startIndex..., in: result)) {
+            // Process in reverse order so ranges stay valid after replacement
+            for match in matches.reversed() {
+                guard let fullRange = Range(match.range, in: result),
+                      let codeRange = Range(match.range(at: 1), in: result),
+                      let codePoint = UInt32(result[codeRange]),
+                      let scalar = Unicode.Scalar(codePoint) else { continue }
+                result.replaceSubrange(fullRange, with: String(scalar))
+            }
+        }
+
+        // Hex entities: &#x2019; → Unicode scalar 0x2019 → '
+        let hexPattern = try? NSRegularExpression(pattern: "&#x([0-9a-fA-F]+);", options: .caseInsensitive)
+        if let matches = hexPattern?.matches(in: result, range: NSRange(result.startIndex..., in: result)) {
+            for match in matches.reversed() {
+                guard let fullRange = Range(match.range, in: result),
+                      let codeRange = Range(match.range(at: 1), in: result),
+                      let codePoint = UInt32(result[codeRange], radix: 16),
+                      let scalar = Unicode.Scalar(codePoint) else { continue }
+                result.replaceSubrange(fullRange, with: String(scalar))
+            }
+        }
 
         return result
     }
