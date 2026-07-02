@@ -59,3 +59,8 @@ Package.resolved
 
 # CocoaPods (if used later)
 Pods/
+
+# Beads / Dolt files (added by bd init)
+.dolt/
+*.db
+.beads-credential-key

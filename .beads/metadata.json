@@ -1,0 +1,7 @@
+{
+  "database": "dolt",
+  "backend": "dolt",
+  "dolt_mode": "embedded",
+  "dolt_database": "junkpile_unclutter_email",
+  "project_id": "cb31240f-dbd7-4b51-b8e3-fc768daad227"
+}
