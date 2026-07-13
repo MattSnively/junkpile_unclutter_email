@@ -489,36 +489,49 @@ struct SessionCompleteView: View {
 
     /// Card showing session statistics
     private var statsCard: some View {
-        HStack(spacing: 40) {
-            // Unsubscribed
-            VStack(spacing: 8) {
-                Text("\(viewModel.unsubscribeCount.localized)")
-                    .font(.system(size: 36, weight: .bold))
-                    .foregroundColor(.red)
-                Text("Unsubscribed")
+        VStack(spacing: 16) {
+            HStack(spacing: 40) {
+                // Unsubscribed
+                VStack(spacing: 8) {
+                    Text("\(viewModel.unsubscribeCount.localized)")
+                        .font(.system(size: 36, weight: .bold))
+                        .foregroundColor(.red)
+                    Text("Unsubscribed")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel("\(viewModel.unsubscribeCount.localized) unsubscribed")
+
+                // Divider — decorative, hide from VoiceOver
+                Rectangle()
+                    .fill(Theme.separator)
+                    .frame(width: 1, height: 60)
+                    .accessibilityHidden(true)
+
+                // Kept
+                VStack(spacing: 8) {
+                    Text("\(viewModel.keepCount.localized)")
+                        .font(.system(size: 36, weight: .bold))
+                        .foregroundColor(.green)
+                    Text("Kept")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel("\(viewModel.keepCount.localized) kept")
+            }
+
+            // What actually happened server-side to the unsubscribe requests.
+            // Updates live as the deferred API calls resolve after each swipe.
+            if !outcomeBreakdownParts.isEmpty {
+                Text(outcomeBreakdownParts.joined(separator: " · "))
                     .font(.caption)
                     .foregroundColor(.secondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+                    .accessibilityLabel("Unsubscribe outcomes: \(outcomeBreakdownParts.joined(separator: ", "))")
             }
-            .accessibilityElement(children: .combine)
-            .accessibilityLabel("\(viewModel.unsubscribeCount.localized) unsubscribed")
-
-            // Divider — decorative, hide from VoiceOver
-            Rectangle()
-                .fill(Theme.separator)
-                .frame(width: 1, height: 60)
-                .accessibilityHidden(true)
-
-            // Kept
-            VStack(spacing: 8) {
-                Text("\(viewModel.keepCount.localized)")
-                    .font(.system(size: 36, weight: .bold))
-                    .foregroundColor(.green)
-                Text("Kept")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            }
-            .accessibilityElement(children: .combine)
-            .accessibilityLabel("\(viewModel.keepCount.localized) kept")
         }
         .padding(.vertical, 24)
         .padding(.horizontal, 48)
@@ -528,6 +541,27 @@ struct SessionCompleteView: View {
                 .stroke(Theme.cardBorder, lineWidth: 2)
         )
         .cornerRadius(16)
+    }
+
+    /// Human-readable pieces of the unsubscribe outcome breakdown, e.g.
+    /// ["6 confirmed", "2 attempted"]. Empty when the session had no
+    /// unsubscribes. Pending = requests whose API calls have not resolved.
+    private var outcomeBreakdownParts: [String] {
+        guard viewModel.unsubscribeCount > 0 else { return [] }
+
+        let counts = viewModel.sessionOutcomeCounts
+        var parts: [String] = []
+        for outcome in [UnsubscribeOutcome.confirmed, .attempted, .failed] {
+            if let count = counts[outcome], count > 0 {
+                parts.append("\(count.localized) \(outcome.displayName.lowercased())")
+            }
+        }
+
+        let pending = max(0, viewModel.unsubscribeCount - counts.values.reduce(0, +))
+        if pending > 0 {
+            parts.append("\(pending.localized) pending")
+        }
+        return parts
     }
 }
 
