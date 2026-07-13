@@ -1,4 +1,4 @@
-# Junkpile - Unclutter Your Email
+# Unpile - Unclutter Your Email
 
 [![iOS Build](https://github.com/MattSnively/junkpile_unclutter_email/actions/workflows/ios-build.yml/badge.svg)](https://github.com/MattSnively/junkpile_unclutter_email/actions/workflows/ios-build.yml)
 [![Backend Test](https://github.com/MattSnively/junkpile_unclutter_email/actions/workflows/backend-test.yml/badge.svg)](https://github.com/MattSnively/junkpile_unclutter_email/actions/workflows/backend-test.yml)

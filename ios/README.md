@@ -1,4 +1,4 @@
-# Junkpile iOS App
+# Unpile iOS App
 
 Native iOS app for email unsubscribe management with gamification features.
 
@@ -144,4 +144,4 @@ xcodebuild test -scheme Junkpile -destination 'platform=iOS Simulator,name=iPhon
 
 ## License
 
-Copyright (c) 2026 Junkpile. All rights reserved.
+Copyright (c) 2026 Unpile. All rights reserved.

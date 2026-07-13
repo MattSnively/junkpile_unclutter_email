@@ -18,7 +18,7 @@ struct SplashView: View {
                     .accessibilityHidden(true)
 
                 // App name
-                Text("Junkpile")
+                Text("Unpile")
                     .font(.largeTitle.bold())
                     .foregroundColor(.primary)
             }

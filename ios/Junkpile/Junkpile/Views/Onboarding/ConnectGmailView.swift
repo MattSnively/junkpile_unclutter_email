@@ -60,7 +60,7 @@ struct ConnectGmailView: View {
                 .font(.system(size: 28, weight: .bold))
                 .foregroundColor(.primary)
 
-            Text("Junkpile needs access to your Gmail to find emails with unsubscribe options and help you clean your inbox.")
+            Text("Unpile needs access to your Gmail to find emails with unsubscribe options and help you clean your inbox.")
                 .font(.body)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
