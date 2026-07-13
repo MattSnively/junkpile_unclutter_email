@@ -715,6 +715,20 @@ app.post('/api/decision', authenticateRequest, async (req, res) => {
             }
         }
 
+        // Clients distinguish confirmed/attempted/failed from this result, so an
+        // unsubscribe decision must always carry one — an omitted field is
+        // ambiguous on the client. Cover the paths where the cascade never ran.
+        if (decision === 'unsubscribe' && !unsubResult?.unsubscribeResult) {
+            unsubResult = {
+                unsubscribeResult: {
+                    success: false,
+                    method: null,
+                    attempted: [],
+                    error: req.authTokens ? 'no-unsubscribe-data' : 'not-authenticated'
+                }
+            };
+        }
+
         // Read existing data
         const data = await fs.readFile(DATA_FILE, 'utf8');
         const jsonData = JSON.parse(data);

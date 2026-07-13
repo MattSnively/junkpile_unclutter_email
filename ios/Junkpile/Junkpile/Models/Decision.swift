@@ -10,6 +10,44 @@ enum DecisionAction: String, Codable {
     case keep
 }
 
+/// UnsubscribeOutcome represents what actually happened to an unsubscribe request
+/// server-side, as opposed to what the user asked for. Points/XP are awarded on
+/// the swipe regardless of outcome — a blocked request is not the user's fault.
+enum UnsubscribeOutcome: String, Codable, CaseIterable {
+    /// The API call has not completed yet (or never reached the server)
+    case pending
+
+    /// An unsubscribe endpoint accepted the request (2xx response)
+    case confirmed
+
+    /// Requests were fired but none could be verified as accepted
+    case attempted
+
+    /// The server had no usable unsubscribe method to try
+    case failed
+
+    /// Short label for stat rows and badges
+    var displayName: String {
+        switch self {
+        case .pending: return "Pending"
+        case .confirmed: return "Confirmed"
+        case .attempted: return "Attempted"
+        case .failed: return "Failed"
+        }
+    }
+
+    /// Maps the server's unsubscribe execution result to an outcome.
+    /// A nil result means the cascade never ran (older server versions omit
+    /// the field entirely), which is indistinguishable from having nothing to try.
+    static func from(_ result: UnsubscribeResult?) -> UnsubscribeOutcome {
+        guard let result = result else { return .failed }
+        if result.success {
+            return .confirmed
+        }
+        return (result.attempted ?? []).isEmpty ? .failed : .attempted
+    }
+}
+
 /// Decision represents a single swipe action on an email.
 /// Each decision records what email was processed, what action was taken,
 /// and the points/XP awarded for that action.
@@ -45,6 +83,16 @@ final class Decision {
     /// The unsubscribe URL if the action was unsubscribe (nil for keep actions)
     var unsubscribeUrl: String?
 
+    /// Server-side execution outcome raw value (nil for keep actions and for
+    /// decisions recorded before outcome tracking shipped). Optional so existing
+    /// stores migrate lightweight without a versioned schema.
+    var unsubscribeOutcomeRawValue: String?
+
+    /// The unsubscribe method that succeeded server-side ("rfc8058", "http-header",
+    /// "http-body", "mailto"), nil if none did. Kept per-decision for the
+    /// repeat-offender tracking planned in the PRO tier.
+    var unsubscribeMethod: String?
+
     // MARK: - Computed Properties
 
     /// The action enum derived from the raw value
@@ -54,6 +102,18 @@ final class Decision {
         }
         set {
             actionRawValue = newValue.rawValue
+        }
+    }
+
+    /// The server-side outcome of the unsubscribe request.
+    /// Nil for keep decisions and for legacy records that predate tracking.
+    var unsubscribeOutcome: UnsubscribeOutcome? {
+        get {
+            guard let rawValue = unsubscribeOutcomeRawValue else { return nil }
+            return UnsubscribeOutcome(rawValue: rawValue)
+        }
+        set {
+            unsubscribeOutcomeRawValue = newValue?.rawValue
         }
     }
 
@@ -81,6 +141,13 @@ final class Decision {
         self.actionRawValue = action.rawValue
         self.timestamp = Date()
         self.unsubscribeUrl = unsubscribeUrl
+
+        // Unsubscribe requests start pending until the server reports what
+        // actually happened; keep decisions have no outcome to track
+        self.unsubscribeOutcomeRawValue = action == .unsubscribe
+            ? UnsubscribeOutcome.pending.rawValue
+            : nil
+        self.unsubscribeMethod = nil
 
         // Calculate points and XP based on action type
         // Unsubscribe: 10 points, 15 XP (rewards decluttering)

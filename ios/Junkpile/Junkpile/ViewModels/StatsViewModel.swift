@@ -25,6 +25,11 @@ final class StatsViewModel: ObservableObject {
     /// Unsubscribe rate percentage
     @Published var unsubscribeRate: Double = 0
 
+    /// Lifetime unsubscribe outcome counts (confirmed / attempted / failed /
+    /// pending). Computed from Decision records on each load; decisions from
+    /// before outcome tracking shipped have no outcome and are excluded.
+    @Published var outcomeCounts: [UnsubscribeOutcome: Int] = [:]
+
     /// Previous week's activity data for week-over-week comparison
     @Published var previousWeekData: [DailyChartData] = []
 
@@ -62,6 +67,9 @@ final class StatsViewModel: ObservableObject {
 
         // Load lifetime stats from profile
         loadLifetimeStats(context: context)
+
+        // Load unsubscribe outcome breakdown
+        loadOutcomeCounts(context: context)
 
         isLoading = false
     }
@@ -172,6 +180,24 @@ final class StatsViewModel: ObservableObject {
     private func loadRecentSessions(context: ModelContext) {
         let sessions = context.getRecentSessions(limit: 10)
         recentSessions = sessions.map { SessionSummary(from: $0) }
+    }
+
+    /// Counts lifetime unsubscribe outcomes from Decision records.
+    /// Buckets in memory — the outcome is an optional raw string, and session
+    /// deletion already cascade-deletes Decisions, so no reversal logic is needed.
+    private func loadOutcomeCounts(context: ModelContext) {
+        let unsubscribeAction = DecisionAction.unsubscribe.rawValue
+        let descriptor = FetchDescriptor<Decision>(
+            predicate: #Predicate { $0.actionRawValue == unsubscribeAction }
+        )
+
+        var counts: [UnsubscribeOutcome: Int] = [:]
+        for decision in (try? context.fetch(descriptor)) ?? [] {
+            if let outcome = decision.unsubscribeOutcome {
+                counts[outcome, default: 0] += 1
+            }
+        }
+        outcomeCounts = counts
     }
 
     /// Loads lifetime statistics from the player profile.

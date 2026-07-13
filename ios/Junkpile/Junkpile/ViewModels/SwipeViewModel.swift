@@ -33,6 +33,11 @@ final class SwipeViewModel: ObservableObject {
     /// Number of keeps in current session
     @Published var keepCount: Int = 0
 
+    /// Server-reported outcomes for this session's unsubscribes, tallied as each
+    /// deferred API call resolves. Drives the session-complete breakdown; the gap
+    /// between unsubscribeCount and this tally is still pending.
+    @Published var sessionOutcomeCounts: [UnsubscribeOutcome: Int] = [:]
+
     /// The most recent decision, held for the undo window.
     /// While non-nil, the user can tap Undo to roll back this decision.
     /// The API call is deferred until the undo window expires.
@@ -212,15 +217,28 @@ final class SwipeViewModel: ObservableObject {
     func commitPendingDecision() {
         guard let pending = pendingDecision else { return }
 
-        // Fire the API call (fire and forget — same pattern as before)
+        // Fire the API call and record the server-side outcome on the decision.
+        // Points/XP were awarded on the swipe and are unaffected by the outcome —
+        // a blocked unsubscribe request is not the user's fault.
         let emailId = pending.email.id
         let action = pending.action
+        let decision = pending.decision
+        let sessionId = currentSession?.id
         Task {
             do {
-                _ = try await apiService.recordDecision(emailId: emailId, action: action)
+                let response = try await apiService.recordDecision(emailId: emailId, action: action)
+                if action == .unsubscribe {
+                    recordOutcome(
+                        UnsubscribeOutcome.from(response.unsubscribeResult),
+                        method: response.unsubscribeResult?.method,
+                        on: decision,
+                        forSessionId: sessionId
+                    )
+                }
             } catch {
                 print("Failed to sync decision to backend: \(error)")
-                // Decision is saved locally, will sync later
+                // Decision is saved locally and stays .pending; re-sync is a
+                // separate concern (retry queue issue)
             }
         }
 
@@ -228,6 +246,29 @@ final class SwipeViewModel: ObservableObject {
         stopUndoTimer()
         pendingDecision = nil
         undoTimeRemaining = 0
+    }
+
+    /// Applies the server-reported outcome to a committed decision and updates
+    /// the tally that drives the session-complete breakdown.
+    private func recordOutcome(
+        _ outcome: UnsubscribeOutcome,
+        method: String?,
+        on decision: Decision,
+        forSessionId sessionId: UUID?
+    ) {
+        // The decision may have been cascade-deleted (e.g. its session was
+        // deleted from Stats) while the request was in flight — skip dead models
+        if decision.modelContext != nil {
+            decision.unsubscribeOutcome = outcome
+            decision.unsubscribeMethod = method
+            try? modelContext?.save()
+        }
+
+        // Only tally into the session the decision belongs to — a response can
+        // land after resetSession() has already started a new session
+        if sessionId != nil && sessionId == currentSession?.id {
+            sessionOutcomeCounts[outcome, default: 0] += 1
+        }
     }
 
     /// Rolls back the most recent swipe decision.
@@ -352,6 +393,7 @@ final class SwipeViewModel: ObservableObject {
         currentIndex = 0
         unsubscribeCount = 0
         keepCount = 0
+        sessionOutcomeCounts = [:]
         currentSession = nil
         sessionState = .notStarted
         errorMessage = nil

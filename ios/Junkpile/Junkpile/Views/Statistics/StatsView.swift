@@ -31,6 +31,9 @@ struct StatsView: View {
                     // Ratio visualization
                     ratioCard
 
+                    // Server-side unsubscribe outcome breakdown
+                    outcomesCard
+
                     // Session history
                     sessionHistoryCard
                 }
@@ -332,6 +335,50 @@ struct StatsView: View {
         .background(Theme.cardBackground)
         .cornerRadius(16)
         .shadow(color: Theme.shadow(opacity: 0.05), radius: 5, x: 0, y: 2)
+    }
+
+    /// Unsubscribe outcomes card — what actually happened to the requests
+    /// server-side. Only decisions recorded since outcome tracking shipped
+    /// carry an outcome, so the card stays hidden until there is data.
+    private var outcomesCard: some View {
+        let outcomes: [(outcome: UnsubscribeOutcome, color: Color)] = [
+            (.confirmed, .green),
+            (.attempted, .orange),
+            (.failed, .red),
+            (.pending, .gray)
+        ]
+        let trackedTotal = viewModel.outcomeCounts.values.reduce(0, +)
+
+        return Group {
+            if trackedTotal > 0 {
+                VStack(alignment: .leading, spacing: 16) {
+                    Text("Unsubscribe Outcomes")
+                        .font(.headline)
+                        .foregroundColor(.primary)
+
+                    VStack(alignment: .leading, spacing: 12) {
+                        ForEach(outcomes, id: \.outcome) { entry in
+                            if let count = viewModel.outcomeCounts[entry.outcome], count > 0 {
+                                ratioRow(
+                                    label: entry.outcome.displayName,
+                                    value: count,
+                                    percentage: Double(count) / Double(trackedTotal) * 100,
+                                    color: entry.color
+                                )
+                            }
+                        }
+                    }
+
+                    Text("Confirmed means the sender's unsubscribe service accepted the request. Attempted requests were sent but couldn't be verified.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                .padding(16)
+                .background(Theme.cardBackground)
+                .cornerRadius(16)
+                .shadow(color: Theme.shadow(opacity: 0.05), radius: 5, x: 0, y: 2)
+            }
+        }
     }
 
     /// Ratio breakdown row
