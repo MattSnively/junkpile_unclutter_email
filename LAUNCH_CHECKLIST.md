@@ -1,3 +1,5 @@
+> **ARCHIVED 2026-07-13 — task tracking moved to beads.** Actionable items were filed as bd issues under epic `junkpile_unclutter_email-e0z` (App Store v1.0 submission). Run `bd ready` for current work. Kept for historical context; do not update.
+
 # Junkpile - App Store Launch Checklist
 
 **Status as of:** February 13, 2026

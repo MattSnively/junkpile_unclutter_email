@@ -1,3 +1,5 @@
+> **ARCHIVED 2026-07-13 — task tracking moved to beads.** The P0 items in this review shipped in the Feb 2026 builds; remaining work is tracked as bd issues (`bd ready`). Kept for historical context; do not update.
+
 # Junkpile iOS App — Senior UX Code Review & Backlog
 
 **Reviewer:** Senior Dev (Code Review)

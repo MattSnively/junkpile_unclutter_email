@@ -15,6 +15,9 @@ gmail_secret.json
 credentials.json
 client_secret*.json
 
+# Root-level screenshots — console screenshots have leaked secrets before (see bd junkpile_unclutter_email-mq6.1)
+/*.png
+
 # OS files
 .DS_Store
 Thumbs.db

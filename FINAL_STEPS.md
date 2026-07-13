@@ -1,3 +1,5 @@
+> **ARCHIVED 2026-07-13 — task tracking moved to beads.** See epic `junkpile_unclutter_email-e0z` (App Store v1.0 submission). Note: steps 1–2 are already done (legal docs live on GitHub Pages, real URLs in SettingsView). Kept for historical context; do not update.
+
 # 🚦 FINAL 3 STEPS TO LAUNCH
 
 ## Your Status: 95% Complete! 🎯

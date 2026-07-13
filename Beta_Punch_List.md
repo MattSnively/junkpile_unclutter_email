@@ -1,3 +1,5 @@
+> **ARCHIVED 2026-07-13 — task tracking moved to beads.** Open items were filed as bd issues under epic `junkpile_unclutter_email-19b` (Beta punch-list burn-down). Run `bd ready` for current work. Kept for historical context; do not update.
+
 ** Junkpile BETA Known bugs and issues **
 
 1. Profile message "Welcome Back" even on first visit
