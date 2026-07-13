@@ -525,9 +525,9 @@ The following features will NEVER be paywalled. This is a permanent commitment, 
 
 | Plan | Price | Rationale |
 |------|-------|-----------|
-| **Monthly** | $2.99/month | Below the impulse-buy threshold. Lower than Clean Email ($7.49/mo) and Cleanfox Pro ($3.49/mo). Junkpile is simpler and should be cheaper. |
-| **Annual** | $19.99/year ($1.67/month) | 44% savings vs monthly. Standard iOS discount pattern. This is the target plan. |
-| **Lifetime** | $39.99 (limited time at launch, then $49.99) | Generates upfront cash. Attracts indie app enthusiasts. Cap at first 10,000 lifetime purchases to limit long-term revenue loss. |
+| **Monthly** | $0.99/month | Below the impulse-buy threshold. Lower than Clean Email ($7.49/mo) and Cleanfox Pro ($3.49/mo). Junkpile is simpler and should be cheaper. |
+| **Annual** | $9.99/year ($.67/month) | 44% savings vs monthly. Standard iOS discount pattern. This is the target plan. |
+| **Lifetime** | $19.99 (limited time at launch, then $39.99) | Generates upfront cash. Attracts indie app enthusiasts. Cap at first 10,000 lifetime purchases to limit long-term revenue loss. |
 
 ### Competitive Pricing Context
 
