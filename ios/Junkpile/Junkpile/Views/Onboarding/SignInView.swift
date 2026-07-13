@@ -72,7 +72,7 @@ struct SignInView: View {
                 .font(.system(size: 60))
                 .foregroundStyle(.primary, .red)
 
-            Text("Sign In to Junkpile")
+            Text("Sign In to Unpile")
                 .font(.system(size: 28, weight: .bold))
                 .foregroundColor(.primary)
 

@@ -63,7 +63,7 @@ struct HomeView: View {
                 .padding()
             }
             .background(Color(UIColor.systemGroupedBackground))
-            .navigationTitle("Junkpile")
+            .navigationTitle("Unpile")
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {

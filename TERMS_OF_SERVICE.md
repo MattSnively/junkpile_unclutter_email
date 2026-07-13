@@ -1,28 +1,28 @@
-# Terms of Service for Junkpile
+# Terms of Service for Unpile
 
 **Last Updated: February 13, 2026**
 
 ## 1. Agreement to Terms
 
-By downloading, installing, or using the Junkpile mobile application ("App," "Junkpile," or "Service"), you agree to be bound by these Terms of Service ("Terms"). If you do not agree to these Terms, do not use the App.
+By downloading, installing, or using the Unpile mobile application ("App," "Unpile," or "Service"), you agree to be bound by these Terms of Service ("Terms"). If you do not agree to these Terms, do not use the App.
 
-These Terms constitute a legally binding agreement between you ("User," "you," or "your") and Junkpile ("we," "us," or "our").
+These Terms constitute a legally binding agreement between you ("User," "you," or "your") and Unpile ("we," "us," or "our").
 
 ## 2. Description of Service
 
-Junkpile is a mobile application that helps you manage email subscriptions by:
+Unpile is a mobile application that helps you manage email subscriptions by:
 - Displaying email subscription messages from your Gmail account
 - Allowing you to unsubscribe from unwanted email lists through a swipe interface
 - Providing gamification features (XP, levels, achievements, streaks) to make email management engaging
 
-**Junkpile is NOT:**
+**Unpile is NOT:**
 - An email client (we do not display full email content, compose emails, or replace your email app)
 - A data analytics service (we do not analyze or sell your email data)
 - A full inbox management tool (we focus exclusively on unsubscribing from mailing lists)
 
 ## 3. Eligibility
 
-You must be at least 13 years old to use Junkpile. By using the App, you represent and warrant that:
+You must be at least 13 years old to use Unpile. By using the App, you represent and warrant that:
 - You are at least 13 years of age
 - You have the legal capacity to enter into these Terms
 - You have a valid email account (currently Gmail, with additional providers planned)
@@ -32,36 +32,36 @@ If you are under 18, you must have permission from a parent or legal guardian to
 ## 4. Account Creation and Security
 
 ### 4.1 Account Registration
-To use Junkpile, you must:
+To use Unpile, you must:
 - Sign in with Apple Sign-In OR Google Sign-In
 - Connect your Gmail account via OAuth 2.0 authentication
 
 ### 4.2 Account Security
 You are responsible for:
 - Maintaining the security of your Apple ID or Google account
-- All activities that occur under your Junkpile account
+- All activities that occur under your Unpile account
 - Notifying us immediately of any unauthorized use at support@junkpile.app
 
 ### 4.3 Account Termination
-You may delete your Junkpile account at any time through Settings > Delete Account. We reserve the right to suspend or terminate your account if you violate these Terms.
+You may delete your Unpile account at any time through Settings > Delete Account. We reserve the right to suspend or terminate your account if you violate these Terms.
 
 ## 5. Email Access and Permissions
 
 ### 5.1 Permissions Required
-By connecting your Gmail account, you grant Junkpile permission to:
+By connecting your Gmail account, you grant Unpile permission to:
 - **Read email metadata** (sender addresses, subject lines, List-Unsubscribe headers)
 - **Send unsubscribe requests** on your behalf when you swipe left on an email
 - **Access subscription-related emails** to display them in the swipe interface
 
 ### 5.2 What We DO NOT Access
-Junkpile does NOT:
+Unpile does NOT:
 - Read the full content/body of your emails
 - Delete emails from your inbox
 - Send emails on your behalf (except unsubscribe requests)
 - Access attachments, contacts, or other Google services
 
 ### 5.3 Revoking Access
-You can revoke Junkpile's access to your Gmail account at any time through your Google Account settings (https://myaccount.google.com/permissions).
+You can revoke Unpile's access to your Gmail account at any time through your Google Account settings (https://myaccount.google.com/permissions).
 
 ## 6. User Responsibilities and Prohibited Conduct
 
@@ -85,7 +85,7 @@ You may NOT:
 
 ### 7.1 How Unsubscribing Works
 When you swipe left on an email:
-- Junkpile sends an unsubscribe request using the List-Unsubscribe header or link provided by the email sender
+- Unpile sends an unsubscribe request using the List-Unsubscribe header or link provided by the email sender
 - The request is sent immediately (or after a 5-second undo timer, if implemented)
 - The email sender is responsible for honoring the unsubscribe request
 
@@ -100,18 +100,18 @@ Some senders may:
 - Continue sending "transactional" emails (order confirmations, account updates)
 - Ignore unsubscribe requests entirely (in violation of laws like CAN-SPAM)
 
-**You acknowledge that Junkpile has no control over whether senders honor unsubscribe requests.**
+**You acknowledge that Unpile has no control over whether senders honor unsubscribe requests.**
 
 ### 7.3 Irreversibility
-**Unsubscribe actions are irreversible through Junkpile.** If you wish to re-subscribe to a sender you unsubscribed from, you must contact that sender directly or re-subscribe through their website.
+**Unsubscribe actions are irreversible through Unpile.** If you wish to re-subscribe to a sender you unsubscribed from, you must contact that sender directly or re-subscribe through their website.
 
 ### 7.4 User Responsibility for Decisions
-**You are solely responsible for your unsubscribe decisions.** Junkpile executes your expressed intent but does not make decisions for you. We are NOT liable if you unsubscribe from emails you later wish you had kept (e.g., account notifications, newsletters you value).
+**You are solely responsible for your unsubscribe decisions.** Unpile executes your expressed intent but does not make decisions for you. We are NOT liable if you unsubscribe from emails you later wish you had kept (e.g., account notifications, newsletters you value).
 
 ## 8. Gamification and Virtual Items
 
 ### 8.1 XP, Levels, Achievements, and Streaks
-Junkpile includes gamification features:
+Unpile includes gamification features:
 - **XP (experience points)** earned by processing emails
 - **Levels** unlocked by accumulating XP
 - **Achievements** unlocked by completing specific milestones
@@ -129,7 +129,7 @@ We reserve the right to modify, remove, or reset gamification features at any ti
 ## 9. Premium Features and Subscriptions (Future)
 
 ### 9.1 Future Paid Features
-Junkpile may introduce premium features ("Junkpile Pro") in the future, which may include:
+Unpile may introduce premium features ("Unpile Pro") in the future, which may include:
 - Multiple email account support
 - Advanced categorization and batch actions
 - Exclusive achievements and challenges
@@ -148,7 +148,7 @@ If premium features are introduced:
 ## 10. Intellectual Property
 
 ### 10.1 Ownership
-Junkpile and all its contents (design, code, graphics, text, logos) are owned by us and protected by copyright, trademark, and other intellectual property laws.
+Unpile and all its contents (design, code, graphics, text, logos) are owned by us and protected by copyright, trademark, and other intellectual property laws.
 
 ### 10.2 Limited License
 We grant you a limited, non-exclusive, non-transferable, revocable license to:
@@ -196,7 +196,7 @@ We disclaim all warranties, express or implied, including:
 
 ## 13. Indemnification
 
-You agree to indemnify, defend, and hold harmless Junkpile and its affiliates from any claims, damages, losses, or expenses (including legal fees) arising from:
+You agree to indemnify, defend, and hold harmless Unpile and its affiliates from any claims, damages, losses, or expenses (including legal fees) arising from:
 - Your use of the App
 - Your violation of these Terms
 - Your violation of any third-party rights (including email senders)
@@ -204,7 +204,7 @@ You agree to indemnify, defend, and hold harmless Junkpile and its affiliates fr
 
 ## 14. Privacy and Data Use
 
-Your use of Junkpile is also governed by our Privacy Policy, which is incorporated into these Terms by reference. By using the App, you consent to the data practices described in our Privacy Policy.
+Your use of Unpile is also governed by our Privacy Policy, which is incorporated into these Terms by reference. By using the App, you consent to the data practices described in our Privacy Policy.
 
 **Key Privacy Points:**
 - We do NOT read, store, or sell your email content
@@ -215,7 +215,7 @@ Read the full Privacy Policy at: [Link to PRIVACY_POLICY.md to be hosted]
 
 ## 15. Third-Party Services and Dependencies
 
-Junkpile relies on third-party services:
+Unpile relies on third-party services:
 - **Apple Sign-In** (authentication)
 - **Google Sign-In and Gmail API** (email access)
 - **Apple App Store** (distribution and in-app purchases)
@@ -271,7 +271,7 @@ You agree to resolve disputes with us only on an individual basis and waive any 
 ## 19. General Provisions
 
 ### 19.1 Entire Agreement
-These Terms, together with our Privacy Policy, constitute the entire agreement between you and Junkpile regarding the App.
+These Terms, together with our Privacy Policy, constitute the entire agreement between you and Unpile regarding the App.
 
 ### 19.2 Severability
 If any provision of these Terms is found to be invalid or unenforceable, the remaining provisions will remain in full effect.
@@ -301,7 +301,7 @@ If you have questions about these Terms, please contact us:
 ## Summary (TL;DR)
 
 ✅ **What You're Agreeing To:**
-- Use Junkpile to unsubscribe from emails via our swipe interface
+- Use Unpile to unsubscribe from emails via our swipe interface
 - Accept that unsubscribe actions are irreversible through the app
 - Take responsibility for your unsubscribe decisions
 - Grant us permission to access Gmail metadata (but NOT email content)
@@ -316,4 +316,4 @@ If you have questions about these Terms, please contact us:
 - Revoke Gmail access anytime
 - Contact support@junkpile.app with questions
 
-**By using Junkpile, you agree to these Terms. Questions? Email support@junkpile.app**
+**By using Unpile, you agree to these Terms. Questions? Email support@junkpile.app**

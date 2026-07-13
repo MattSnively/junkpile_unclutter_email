@@ -22,7 +22,7 @@ const REQUEST_TIMEOUT_MS = 10000;
 const MAX_REDIRECTS = 5;
 
 // User-Agent string for outbound unsubscribe requests
-const USER_AGENT = 'Junkpile-Unsubscribe/1.0';
+const USER_AGENT = 'Unpile-Unsubscribe/1.0';
 
 class UnsubscribeService {
 

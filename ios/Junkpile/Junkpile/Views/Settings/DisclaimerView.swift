@@ -21,7 +21,7 @@ struct DisclaimerView: View {
                     disclaimerSection(
                         icon: "hand.tap",
                         title: "User Responsibility",
-                        body: "All unsubscribe actions are initiated by you through Junkpile's swipe interface. Junkpile executes your expressed intent by sending unsubscribe requests on your behalf. You are responsible for reviewing each email before swiping."
+                        body: "All unsubscribe actions are initiated by you through Unpile's swipe interface. Unpile executes your expressed intent by sending unsubscribe requests on your behalf. You are responsible for reviewing each email before swiping."
                     )
 
                     Divider()
@@ -30,7 +30,7 @@ struct DisclaimerView: View {
                     disclaimerSection(
                         icon: "arrow.uturn.backward.circle",
                         title: "Irreversibility",
-                        body: "Unsubscribe requests sent through Junkpile cannot be reversed through the app. If you wish to receive emails from a sender you previously unsubscribed from, you must re-subscribe directly with that sender."
+                        body: "Unsubscribe requests sent through Unpile cannot be reversed through the app. If you wish to receive emails from a sender you previously unsubscribed from, you must re-subscribe directly with that sender."
                     )
 
                     Divider()
@@ -48,7 +48,7 @@ struct DisclaimerView: View {
                     disclaimerSection(
                         icon: "envelope.open",
                         title: "No Liability for Missed Communications",
-                        body: "Junkpile is not responsible for any emails, newsletters, account notifications, or other communications that you chose to unsubscribe from. Review each sender carefully before making your decision."
+                        body: "Unpile is not responsible for any emails, newsletters, account notifications, or other communications that you chose to unsubscribe from. Review each sender carefully before making your decision."
                     )
 
                     Divider()
@@ -57,7 +57,7 @@ struct DisclaimerView: View {
                     disclaimerSection(
                         icon: "lock.shield",
                         title: "Email Access Scope",
-                        body: "Junkpile only accesses email metadata (sender, subject, unsubscribe links) and does not read, store, or process the full content of your emails. Access is limited to what is necessary to identify unsubscribe options."
+                        body: "Unpile only accesses email metadata (sender, subject, unsubscribe links) and does not read, store, or process the full content of your emails. Access is limited to what is necessary to identify unsubscribe options."
                     )
 
                     Divider()
@@ -66,7 +66,7 @@ struct DisclaimerView: View {
                     disclaimerSection(
                         icon: "icloud",
                         title: "Service Availability",
-                        body: "Junkpile depends on the Google Gmail API to access your email data. Service interruptions, API changes, or connectivity issues may temporarily or permanently affect the app's functionality."
+                        body: "Unpile depends on the Google Gmail API to access your email data. Service interruptions, API changes, or connectivity issues may temporarily or permanently affect the app's functionality."
                     )
 
                     Divider()

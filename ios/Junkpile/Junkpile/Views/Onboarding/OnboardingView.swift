@@ -110,7 +110,7 @@ struct OnboardingView: View {
                 .cornerRadius(12)
         }
         .accessibilityLabel(currentPage < 1 ? "Next" : "Get Started")
-        .accessibilityHint(currentPage < 1 ? "Go to next onboarding page" : "Sign in to start using Junkpile")
+        .accessibilityHint(currentPage < 1 ? "Go to next onboarding page" : "Sign in to start using Unpile")
     }
 }
 

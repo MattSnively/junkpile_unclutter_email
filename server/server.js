@@ -830,7 +830,7 @@ app.get('/api/stats', async (req, res) => {
 Promise.all([initDataFile(), userStore.initUsersFile()]).then(() => {
     // Bind to 0.0.0.0 so Railway's reverse proxy can reach the container
     app.listen(PORT, '0.0.0.0', () => {
-        console.log(`Junkpile server running on port ${PORT}`);
+        console.log(`Unpile server running on port ${PORT}`);
         if (!hasGmailCredentials()) {
             console.log('\n⚠️  Gmail credentials not configured!');
             console.log('Please set up your .env file with Gmail OAuth credentials.');

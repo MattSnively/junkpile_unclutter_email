@@ -234,7 +234,7 @@ struct SettingsView: View {
             }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("Notifications are disabled for Junkpile. Open Settings to enable them.")
+            Text("Notifications are disabled for Unpile. Open Settings to enable them.")
         }
     }
 
@@ -467,7 +467,7 @@ struct SettingsView: View {
                         Image(systemName: "star.fill")
                             .foregroundColor(.yellow)
 
-                        Text("Rate Junkpile")
+                        Text("Rate Unpile")
 
                         Spacer()
 

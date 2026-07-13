@@ -1,10 +1,10 @@
-# Privacy Policy for Junkpile
+# Privacy Policy for Unpile
 
 **Last Updated: February 13, 2026**
 
 ## Introduction
 
-Junkpile ("we," "our," or "us") is committed to protecting your privacy. This Privacy Policy explains how we handle information when you use the Junkpile mobile application (the "App").
+Unpile ("we," "our," or "us") is committed to protecting your privacy. This Privacy Policy explains how we handle information when you use the Unpile mobile application (the "App").
 
 **Our Core Privacy Commitment: We do not read, store, analyze, or sell your email data. Period.**
 
@@ -22,7 +22,7 @@ We want to be explicit about what we do NOT do with your data:
 
 ## Information We Access (But Do Not Store)
 
-To provide the core functionality of Junkpile, we temporarily access:
+To provide the core functionality of Unpile, we temporarily access:
 
 ### Email Metadata (Transient Access Only)
 - **Sender addresses** - To display who sent the email
@@ -87,7 +87,7 @@ We store minimal device information:
 ### Security Measures
 - **HTTPS/TLS encryption** for all data transmitted between your device and our servers
 - **Keychain storage** for sensitive authentication tokens (encrypted by iOS)
-- **OAuth 2.0 authentication** (no passwords stored by Junkpile)
+- **OAuth 2.0 authentication** (no passwords stored by Unpile)
 - **Server-side JWT verification** using Apple's public JWKS (JSON Web Key Set)
 
 ## Third-Party Services
@@ -115,7 +115,7 @@ We request **read-only access** to your Gmail account with the minimum scopes ne
 Google's Privacy Policy applies to their services: https://policies.google.com/privacy
 
 ### Analytics and Crash Reporting
-Currently, Junkpile uses **only Apple's built-in App Analytics** (provided through App Store Connect). We do not use third-party analytics SDKs like Google Analytics, Mixpanel, or Amplitude.
+Currently, Unpile uses **only Apple's built-in App Analytics** (provided through App Store Connect). We do not use third-party analytics SDKs like Google Analytics, Mixpanel, or Amplitude.
 
 In future versions, we may integrate privacy-focused analytics (e.g., TelemetryDeck) and crash reporting (e.g., Sentry). If we do, we will update this Privacy Policy and notify users.
 
@@ -127,18 +127,18 @@ You have the right to:
 - **Delete your account:** Use the "Delete Account" option in Settings, which will permanently delete all your account and gamification data from our servers
 
 ### Revoke Email Access
-You can revoke Junkpile's access to your email at any time:
-- **Apple Sign-In:** Go to iOS Settings > Apple ID > Password & Security > Apps Using Apple ID > Junkpile > Stop Using Apple ID
-- **Google/Gmail:** Go to your Google Account settings at https://myaccount.google.com/permissions and remove Junkpile's access
+You can revoke Unpile's access to your email at any time:
+- **Apple Sign-In:** Go to iOS Settings > Apple ID > Password & Security > Apps Using Apple ID > Unpile > Stop Using Apple ID
+- **Google/Gmail:** Go to your Google Account settings at https://myaccount.google.com/permissions and remove Unpile's access
 
 ### Opt-Out of Notifications
 You can disable push notifications at any time:
 - **In the app:** Settings > Notifications > Disable all notification types
-- **In iOS Settings:** Settings > Notifications > Junkpile > Turn off Allow Notifications
+- **In iOS Settings:** Settings > Notifications > Unpile > Turn off Allow Notifications
 
 ## Children's Privacy
 
-Junkpile is not directed to children under the age of 13. We do not knowingly collect personal information from children under 13. If you believe we have collected information from a child under 13, please contact us immediately at support@junkpile.app.
+Unpile is not directed to children under the age of 13. We do not knowingly collect personal information from children under 13. If you believe we have collected information from a child under 13, please contact us immediately at support@junkpile.app.
 
 ## Data Sharing and Disclosure
 
@@ -148,12 +148,12 @@ We will never sell your personal information or email data to third parties.
 ### Limited Disclosure Scenarios
 We may disclose your information only in these limited circumstances:
 - **Legal compliance:** If required by law, court order, or government request
-- **Safety and security:** To protect the rights, property, or safety of Junkpile, our users, or the public
+- **Safety and security:** To protect the rights, property, or safety of Unpile, our users, or the public
 - **Business transfer:** In the event of a merger, acquisition, or sale of assets, your data may be transferred to the new owner (you will be notified and can delete your account before the transfer)
 
 ## International Data Transfers
 
-Junkpile's servers are currently hosted in [specify your server location, e.g., "the United States" or "AWS US-East-1"]. If you use Junkpile from outside this region, your data may be transferred to and processed in this location.
+Unpile's servers are currently hosted in [specify your server location, e.g., "the United States" or "AWS US-East-1"]. If you use Unpile from outside this region, your data may be transferred to and processed in this location.
 
 We comply with applicable data protection laws, including GDPR (if applicable to EU users) and CCPA (California residents).
 
