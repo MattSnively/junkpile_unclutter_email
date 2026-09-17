@@ -14,6 +14,7 @@ describeWithDb('stores (Postgres)', () => {
 
     beforeAll(async () => {
         process.env.DATABASE_URL = TEST_DATABASE_URL;
+        process.env.TOKEN_ENCRYPTION_KEY = process.env.TOKEN_ENCRYPTION_KEY || 'b'.repeat(64);
         db = require('../db');
         userStore = require('../userStore');
         decisionStore = require('../decisionStore');
@@ -84,6 +85,56 @@ describeWithDb('stores (Postgres)', () => {
             expect(updated.gmailEmail).toBe('d@gmail.com');
             expect(updated.name).toBeNull();
             expect(await userStore.findById(created.id)).toEqual(updated);
+        });
+
+        test('gmail tokens are stored encrypted, never as plaintext', async () => {
+            const tokens = { access_token: 'ya29.plain', refresh_token: '1//secret-rt', expiry_date: 1 };
+            const viaCreate = await userStore.createUser({
+                email: 'enc1@example.com', authProvider: 'google', gmailTokens: tokens
+            });
+            const viaUpdate = await userStore.createUser({ email: 'enc2@example.com', authProvider: 'google' });
+            await userStore.updateUser(viaUpdate.id, { gmailTokens: tokens });
+
+            const { rows } = await db.pool.query('SELECT gmail_tokens::text AS raw FROM users WHERE id = ANY($1)', [[viaCreate.id, viaUpdate.id]]);
+            expect(rows).toHaveLength(2);
+            for (const { raw } of rows) {
+                expect(raw).not.toContain('ya29.plain');
+                expect(raw).not.toContain('secret-rt');
+                expect(JSON.parse(raw)).toMatchObject({ v: 1 });
+            }
+            expect((await userStore.findById(viaCreate.id)).gmailTokens).toEqual(tokens);
+            expect((await userStore.findById(viaUpdate.id)).gmailTokens).toEqual(tokens);
+        });
+
+        test('encryptLegacyTokens seals plaintext rows and is a no-op afterwards', async () => {
+            const plain = { access_token: 'ya29.legacy', refresh_token: '1//legacy', expiry_date: 5 };
+            const { rows: [row] } = await db.pool.query(
+                `INSERT INTO users (id, email, auth_provider, gmail_tokens)
+                 VALUES (gen_random_uuid(), 'legacy@example.com', 'apple', $1) RETURNING id`,
+                [plain]
+            );
+            const sealedUser = await userStore.createUser({
+                email: 'already@example.com', authProvider: 'apple', gmailTokens: plain
+            });
+
+            expect(await userStore.encryptLegacyTokens()).toBe(1);
+
+            const { rows } = await db.pool.query('SELECT gmail_tokens::text AS raw FROM users WHERE id = $1', [row.id]);
+            expect(rows[0].raw).not.toContain('ya29.legacy');
+            expect((await userStore.findById(row.id)).gmailTokens).toEqual(plain);
+            expect((await userStore.findById(sealedUser.id)).gmailTokens).toEqual(plain);
+            expect(await userStore.encryptLegacyTokens()).toBe(0);
+        });
+
+        test('clearing gmail tokens stores NULL', async () => {
+            const created = await userStore.createUser({
+                email: 'clear@example.com', authProvider: 'google',
+                gmailTokens: { access_token: 'x', refresh_token: 'y', expiry_date: 1 }
+            });
+            const cleared = await userStore.updateUser(created.id, { gmailTokens: null, gmailEmail: null });
+            expect(cleared.gmailTokens).toBeNull();
+            const { rows } = await db.pool.query('SELECT gmail_tokens FROM users WHERE id = $1', [created.id]);
+            expect(rows[0].gmail_tokens).toBeNull();
         });
 
         test('updateUser rejects fields that are not columns', async () => {

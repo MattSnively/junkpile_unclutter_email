@@ -822,7 +822,12 @@ app.get('/api/stats', authenticateRequest, async (req, res) => {
 });
 
 // Start server once the schema exists — a half-booted server would 500 on every request
-db.initSchema().then(() => {
+db.initSchema().then(async () => {
+    const sealed = await userStore.encryptLegacyTokens();
+    if (sealed > 0) {
+        console.log(`Encrypted ${sealed} legacy plaintext Gmail token row(s)`);
+    }
+
     // Bind to 0.0.0.0 so Railway's reverse proxy can reach the container
     app.listen(PORT, '0.0.0.0', () => {
         console.log(`Unpile server running on port ${PORT}`);

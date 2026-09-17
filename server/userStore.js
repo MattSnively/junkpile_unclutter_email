@@ -25,6 +25,7 @@
 
 const crypto = require('crypto');
 const { pool } = require('./db');
+const { encryptTokens, decryptTokens } = require('./tokenCrypto');
 
 // Record field -> column. Doubles as the allowlist for updateUser, so a typo
 // in a caller fails loudly instead of silently being dropped.
@@ -46,7 +47,7 @@ function rowToUser(row) {
         email: row.email,
         name: row.name,
         authProvider: row.auth_provider,
-        gmailTokens: row.gmail_tokens,
+        gmailTokens: decryptTokens(row.gmail_tokens),
         gmailEmail: row.gmail_email,
         createdAt: row.created_at.toISOString(),
         lastLoginAt: row.last_login_at.toISOString()
@@ -110,7 +111,7 @@ async function createUser(userData) {
             userData.email,
             userData.name || null,
             userData.authProvider,
-            userData.gmailTokens || null,
+            encryptTokens(userData.gmailTokens || null),
             userData.gmailEmail || null
         ]
     );
@@ -134,7 +135,7 @@ async function updateUser(userId, updates) {
         if (!column) {
             throw new Error(`updateUser: unknown field "${field}"`);
         }
-        values.push(value);
+        values.push(field === 'gmailTokens' ? encryptTokens(value) : value);
         assignments.push(`${column} = $${values.length}`);
     }
 
@@ -160,7 +161,29 @@ async function deleteUser(userId) {
     return rowCount > 0;
 }
 
+/**
+ * One-time sweep for rows written before encryption existed: any token blob
+ * without a `v` envelope field is plaintext. Runs at every boot; a no-op once
+ * every row is sealed.
+ *
+ * @returns {Promise<number>} Rows re-encrypted
+ */
+async function encryptLegacyTokens() {
+    const { rows } = await pool.query(
+        `SELECT id, gmail_tokens FROM users
+         WHERE gmail_tokens IS NOT NULL AND NOT (gmail_tokens ? 'v')`
+    );
+    for (const row of rows) {
+        await pool.query(
+            'UPDATE users SET gmail_tokens = $2 WHERE id = $1',
+            [row.id, encryptTokens(row.gmail_tokens)]
+        );
+    }
+    return rows.length;
+}
+
 module.exports = {
+    encryptLegacyTokens,
     findByAppleId,
     findById,
     findByEmail,

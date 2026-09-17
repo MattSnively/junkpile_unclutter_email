@@ -43,6 +43,7 @@ jobs:
 
     env:
       TEST_DATABASE_URL: postgres://postgres:unpile@localhost:5432/unpile_test
+      TOKEN_ENCRYPTION_KEY: 0000000000000000000000000000000000000000000000000000000000000000
 
     steps:
       - name: Checkout code
@@ -64,6 +65,7 @@ jobs:
           echo "GMAIL_CLIENT_ID=test-client-id" >> .env
           echo "GMAIL_CLIENT_SECRET=test-client-secret" >> .env
           echo "DATABASE_URL=$TEST_DATABASE_URL" >> .env
+          echo "TOKEN_ENCRYPTION_KEY=$TOKEN_ENCRYPTION_KEY" >> .env
 
       # Start server and test health
       - name: Test server startup
