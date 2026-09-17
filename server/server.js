@@ -4,12 +4,14 @@ const bodyParser = require('body-parser');
 const session = require('express-session');
 const cors = require('cors');
 const path = require('path');
-const fs = require('fs').promises;
+const crypto = require('crypto');
 const { google } = require('googleapis');
 const GmailService = require('./gmailService');
 const { verifyAppleToken } = require('./appleAuth');
 const { generateSessionToken, verifySessionToken } = require('./sessionToken');
+const db = require('./db');
 const userStore = require('./userStore');
+const decisionStore = require('./decisionStore');
 
 const app = express();
 // Use Railway's injected PORT in production, fall back to 3000 for local dev
@@ -31,9 +33,6 @@ app.use(express.static(path.join(__dirname, '../public')));
 app.get('/health', (req, res) => {
     res.json({ status: 'ok' });
 });
-
-// Data file path
-const DATA_FILE = path.join(__dirname, '../data/decisions.json');
 
 // OAuth2 Client — used for web auth flow (session-based)
 const oauth2Client = new google.auth.OAuth2(
@@ -107,18 +106,31 @@ async function refreshMobileToken(refreshToken) {
     return data;
 }
 
-// Initialize data file, creating the data/ directory if it doesn't exist.
-// The data/ directory is gitignored, so it won't exist on first deploy.
-async function initDataFile() {
-    try {
-        // Ensure the parent directory exists (gitignored, won't be in the repo)
-        const dataDir = path.dirname(DATA_FILE);
-        await fs.mkdir(dataDir, { recursive: true });
+// Google Sign-In users have no server-side record, so their decisions are
+// keyed by Gmail address. Looking that up costs a Gmail API call, so cache it
+// per access token for the token's lifetime (Google access tokens live 1h).
+const GOOGLE_KEY_TTL_MS = 60 * 60 * 1000;
+const googleUserKeys = new Map();
 
-        await fs.access(DATA_FILE);
-    } catch {
-        await fs.writeFile(DATA_FILE, JSON.stringify({ sessions: [] }, null, 2));
+async function resolveGoogleUserKey(accessToken) {
+    const cacheKey = crypto.createHash('sha256').update(accessToken).digest('hex');
+    const cached = googleUserKeys.get(cacheKey);
+    if (cached && cached.expiresAt > Date.now()) {
+        return cached.userKey;
     }
+
+    const auth = new google.auth.OAuth2();
+    auth.setCredentials({ access_token: accessToken });
+    const gmail = google.gmail({ version: 'v1', auth });
+    const profile = await gmail.users.getProfile({ userId: 'me' });
+    const userKey = `google:${profile.data.emailAddress}`;
+
+    // Evict stale entries on the miss path so the map stays bounded by active tokens
+    for (const [key, entry] of googleUserKeys) {
+        if (entry.expiresAt <= Date.now()) googleUserKeys.delete(key);
+    }
+    googleUserKeys.set(cacheKey, { userKey, expiresAt: Date.now() + GOOGLE_KEY_TTL_MS });
+    return userKey;
 }
 
 // Check if Gmail credentials are configured
@@ -566,6 +578,7 @@ async function authenticateRequest(req, res, next) {
                 const user = await userStore.findById(sessionPayload.userId);
                 if (user) {
                     req.user = user;
+                    req.userKey = user.id;
                     // Provide Gmail tokens if connected, otherwise leave authTokens null.
                     // Endpoints that require Gmail access should check req.authTokens.
                     req.authTokens = user.gmailTokens || null;
@@ -586,13 +599,25 @@ async function authenticateRequest(req, res, next) {
         // Explicitly null out refresh_token so the googleapis library won't try to
         // auto-refresh using the web client credentials (which can't refresh iOS tokens).
         req.authTokens = { access_token: token, refresh_token: null };
-        return next();
+        return resolveGoogleUserKey(token)
+            .then(userKey => { req.userKey = userKey; next(); })
+            .catch(() => res.status(401).json({
+                success: false,
+                needsAuth: true,
+                error: 'Authentication expired. Please sign in again.'
+            }));
     }
 
     // Fall back to session tokens (web)
     if (req.session && req.session.tokens) {
         req.authTokens = req.session.tokens;
-        return next();
+        return resolveGoogleUserKey(req.session.tokens.access_token)
+            .then(userKey => { req.userKey = userKey; next(); })
+            .catch(() => res.status(401).json({
+                success: false,
+                needsAuth: true,
+                error: 'Authentication expired. Please sign in again.'
+            }));
     }
 
     // No authentication found
@@ -729,32 +754,12 @@ app.post('/api/decision', authenticateRequest, async (req, res) => {
             };
         }
 
-        // Read existing data
-        const data = await fs.readFile(DATA_FILE, 'utf8');
-        const jsonData = JSON.parse(data);
-
-        // Find or create current session
-        let currentSession = jsonData.sessions.find(s => !s.completed);
-        if (!currentSession) {
-            currentSession = {
-                id: Date.now().toString(),
-                startTime: new Date().toISOString(),
-                decisions: [],
-                completed: false
-            };
-            jsonData.sessions.push(currentSession);
-        }
-
-        // Add decision (include unsubscribe method used, if any)
-        currentSession.decisions.push({
+        // Record decision (include unsubscribe method used, if any)
+        await decisionStore.recordDecision(req.userKey, {
             emailId,
             decision,
-            timestamp: new Date().toISOString(),
             unsubscribeMethod: unsubResult?.unsubscribeResult?.method || null
         });
-
-        // Save data
-        await fs.writeFile(DATA_FILE, JSON.stringify(jsonData, null, 2));
 
         // Return response with unsubscribe execution details
         res.json({
@@ -804,20 +809,10 @@ app.post('/api/logout', async (req, res) => {
     res.json({ success: true });
 });
 
-// Get statistics endpoint
-app.get('/api/stats', async (req, res) => {
+// Get statistics endpoint — per user, so it needs the same auth as decisions
+app.get('/api/stats', authenticateRequest, async (req, res) => {
     try {
-        const data = await fs.readFile(DATA_FILE, 'utf8');
-        const jsonData = JSON.parse(data);
-
-        const stats = {
-            totalSessions: jsonData.sessions.length,
-            completedSessions: jsonData.sessions.filter(s => s.completed).length,
-            totalDecisions: jsonData.sessions.reduce((acc, s) => acc + s.decisions.length, 0),
-            totalUnsubscribes: jsonData.sessions.reduce((acc, s) =>
-                acc + s.decisions.filter(d => d.decision === 'unsubscribe').length, 0
-            )
-        };
+        const stats = await decisionStore.getStats(req.userKey);
 
         res.json({ success: true, stats });
     } catch (error) {
@@ -826,8 +821,8 @@ app.get('/api/stats', async (req, res) => {
     }
 });
 
-// Start server — initialize both decisions and users data files
-Promise.all([initDataFile(), userStore.initUsersFile()]).then(() => {
+// Start server once the schema exists — a half-booted server would 500 on every request
+db.initSchema().then(() => {
     // Bind to 0.0.0.0 so Railway's reverse proxy can reach the container
     app.listen(PORT, '0.0.0.0', () => {
         console.log(`Unpile server running on port ${PORT}`);

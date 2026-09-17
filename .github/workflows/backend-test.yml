@@ -27,6 +27,23 @@ jobs:
       matrix:
         node-version: [18.x, 20.x]
 
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_PASSWORD: unpile
+          POSTGRES_DB: unpile_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      TEST_DATABASE_URL: postgres://postgres:unpile@localhost:5432/unpile_test
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -46,10 +63,7 @@ jobs:
           echo "SESSION_SECRET=test-secret-key" > .env
           echo "GMAIL_CLIENT_ID=test-client-id" >> .env
           echo "GMAIL_CLIENT_SECRET=test-client-secret" >> .env
-
-      # Create data directory
-      - name: Create data directory
-        run: mkdir -p data
+          echo "DATABASE_URL=$TEST_DATABASE_URL" >> .env
 
       # Start server and test health
       - name: Test server startup

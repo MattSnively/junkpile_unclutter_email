@@ -1,9 +1,9 @@
 /**
- * userStore.js — Simple JSON file-based user storage.
+ * userStore.js — Postgres-backed user storage.
  *
- * Stores user records in data/users.json, matching the existing pattern
- * used by data/decisions.json. Each user has an identity provider
- * (Apple or Google) and optional Gmail OAuth tokens for inbox access.
+ * Each user has an identity provider (Apple or Google) and optional Gmail
+ * OAuth tokens for inbox access. Rows are mapped to the camelCase record
+ * shape below so callers never see column names.
  *
  * User record shape:
  * {
@@ -23,46 +23,34 @@
  * }
  */
 
-const fs = require('fs').promises;
-const path = require('path');
 const crypto = require('crypto');
+const { pool } = require('./db');
 
-// User data file path — stored alongside decisions.json in the data/ directory
-const USERS_FILE = path.join(__dirname, '../data/users.json');
+// Record field -> column. Doubles as the allowlist for updateUser, so a typo
+// in a caller fails loudly instead of silently being dropped.
+const COLUMNS = {
+    appleUserId: 'apple_user_id',
+    email: 'email',
+    name: 'name',
+    authProvider: 'auth_provider',
+    gmailTokens: 'gmail_tokens',
+    gmailEmail: 'gmail_email',
+    lastLoginAt: 'last_login_at'
+};
 
-/**
- * Ensures the users.json file exists. Creates it with an empty array if missing.
- * Called once at server startup.
- */
-async function initUsersFile() {
-    try {
-        // Ensure the data/ directory exists (gitignored, won't be in the repo)
-        const dataDir = path.dirname(USERS_FILE);
-        await fs.mkdir(dataDir, { recursive: true });
-
-        await fs.access(USERS_FILE);
-    } catch {
-        // File doesn't exist — create it with empty users array
-        await fs.writeFile(USERS_FILE, JSON.stringify({ users: [] }, null, 2));
-    }
-}
-
-/**
- * Reads all users from the JSON file.
- * @returns {Promise<Array>} Array of user objects
- */
-async function readUsers() {
-    const data = await fs.readFile(USERS_FILE, 'utf8');
-    const parsed = JSON.parse(data);
-    return parsed.users || [];
-}
-
-/**
- * Writes the full users array back to the JSON file.
- * @param {Array} users - Complete array of user objects to persist
- */
-async function writeUsers(users) {
-    await fs.writeFile(USERS_FILE, JSON.stringify({ users }, null, 2));
+function rowToUser(row) {
+    if (!row) return null;
+    return {
+        id: row.id,
+        appleUserId: row.apple_user_id,
+        email: row.email,
+        name: row.name,
+        authProvider: row.auth_provider,
+        gmailTokens: row.gmail_tokens,
+        gmailEmail: row.gmail_email,
+        createdAt: row.created_at.toISOString(),
+        lastLoginAt: row.last_login_at.toISOString()
+    };
 }
 
 /**
@@ -73,8 +61,8 @@ async function writeUsers(users) {
  * @returns {Promise<Object|null>} User record or null if not found
  */
 async function findByAppleId(appleUserId) {
-    const users = await readUsers();
-    return users.find(u => u.appleUserId === appleUserId) || null;
+    const { rows } = await pool.query('SELECT * FROM users WHERE apple_user_id = $1', [appleUserId]);
+    return rowToUser(rows[0]);
 }
 
 /**
@@ -84,8 +72,8 @@ async function findByAppleId(appleUserId) {
  * @returns {Promise<Object|null>} User record or null if not found
  */
 async function findById(userId) {
-    const users = await readUsers();
-    return users.find(u => u.id === userId) || null;
+    const { rows } = await pool.query('SELECT * FROM users WHERE id = $1', [userId]);
+    return rowToUser(rows[0]);
 }
 
 /**
@@ -97,8 +85,8 @@ async function findById(userId) {
  * @returns {Promise<Object|null>} User record or null if not found
  */
 async function findByEmail(email) {
-    const users = await readUsers();
-    return users.find(u => u.email === email) || null;
+    const { rows } = await pool.query('SELECT * FROM users WHERE email = $1 LIMIT 1', [email]);
+    return rowToUser(rows[0]);
 }
 
 /**
@@ -112,23 +100,21 @@ async function findByEmail(email) {
  * @returns {Promise<Object>} The created user record with generated ID and timestamps
  */
 async function createUser(userData) {
-    const users = await readUsers();
-
-    const newUser = {
-        id: crypto.randomUUID(),
-        appleUserId: userData.appleUserId || null,
-        email: userData.email,
-        name: userData.name || null,
-        authProvider: userData.authProvider,
-        gmailTokens: userData.gmailTokens || null,
-        gmailEmail: userData.gmailEmail || null,
-        createdAt: new Date().toISOString(),
-        lastLoginAt: new Date().toISOString()
-    };
-
-    users.push(newUser);
-    await writeUsers(users);
-    return newUser;
+    const { rows } = await pool.query(
+        `INSERT INTO users (id, apple_user_id, email, name, auth_provider, gmail_tokens, gmail_email)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)
+         RETURNING *`,
+        [
+            crypto.randomUUID(),
+            userData.appleUserId || null,
+            userData.email,
+            userData.name || null,
+            userData.authProvider,
+            userData.gmailTokens || null,
+            userData.gmailEmail || null
+        ]
+    );
+    return rowToUser(rows[0]);
 }
 
 /**
@@ -140,17 +126,27 @@ async function createUser(userData) {
  * @returns {Promise<Object|null>} Updated user record, or null if user not found
  */
 async function updateUser(userId, updates) {
-    const users = await readUsers();
-    const index = users.findIndex(u => u.id === userId);
+    const assignments = [];
+    const values = [userId];
 
-    if (index === -1) {
-        return null;
+    for (const [field, value] of Object.entries(updates)) {
+        const column = COLUMNS[field];
+        if (!column) {
+            throw new Error(`updateUser: unknown field "${field}"`);
+        }
+        values.push(value);
+        assignments.push(`${column} = $${values.length}`);
     }
 
-    // Merge updates into existing record (shallow merge)
-    users[index] = { ...users[index], ...updates };
-    await writeUsers(users);
-    return users[index];
+    if (assignments.length === 0) {
+        return findById(userId);
+    }
+
+    const { rows } = await pool.query(
+        `UPDATE users SET ${assignments.join(', ')} WHERE id = $1 RETURNING *`,
+        values
+    );
+    return rowToUser(rows[0]);
 }
 
 /**
@@ -160,19 +156,11 @@ async function updateUser(userId, updates) {
  * @returns {Promise<boolean>} True if user was found and deleted
  */
 async function deleteUser(userId) {
-    const users = await readUsers();
-    const filtered = users.filter(u => u.id !== userId);
-
-    if (filtered.length === users.length) {
-        return false; // User not found
-    }
-
-    await writeUsers(filtered);
-    return true;
+    const { rowCount } = await pool.query('DELETE FROM users WHERE id = $1', [userId]);
+    return rowCount > 0;
 }
 
 module.exports = {
-    initUsersFile,
     findByAppleId,
     findById,
     findByEmail,
