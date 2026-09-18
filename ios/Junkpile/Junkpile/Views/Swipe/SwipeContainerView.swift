@@ -1,5 +1,7 @@
 import SwiftUI
 import SwiftData
+// Timer.publish, used for the retry countdown on ErrorView
+import Combine
 
 /// SwipeContainerView is the main container for the swipe session experience.
 /// Handles the different session states: not started, loading, swiping, and complete.
@@ -9,6 +11,9 @@ struct SwipeContainerView: View {
 
     @Environment(\.modelContext) private var modelContext
     @EnvironmentObject var gamificationViewModel: GamificationViewModel
+    /// Needed so an error screen can send the user back through sign-in or
+    /// re-run Gmail authorisation
+    @EnvironmentObject var authViewModel: AuthViewModel
 
     // MARK: - Bindings
 
@@ -43,7 +48,7 @@ struct SwipeContainerView: View {
                     )
 
                 case .error(let userError):
-                    ErrorView(error: userError, onRetry: startSession)
+                    ErrorView(error: userError, onAction: handleRecovery)
                 }
             }
             // Undo button overlay — floats above all session states so it
@@ -80,6 +85,36 @@ struct SwipeContainerView: View {
     private func startSession() {
         Task {
             await viewModel.startSession()
+        }
+    }
+
+    /// Performs the recovery the error screen offered.
+    ///
+    /// Gmail reconnection differs by provider: an Apple user re-runs the
+    /// Gmail-only OAuth flow, but that flow authenticates with a server
+    /// session token, which a Google user does not have. For them a dead
+    /// Gmail grant is a dead session, so the only route back is signing in
+    /// again.
+    private func handleRecovery(_ action: RecoveryAction) {
+        switch action {
+        case .retry:
+            startSession()
+
+        case .signIn:
+            Task { await authViewModel.signOut() }
+
+        case .connectGmail:
+            if authViewModel.authProvider == .apple {
+                Task { await authViewModel.connectGmail(from: authViewModel.keyWindow) }
+            } else {
+                Task { await authViewModel.signOut() }
+            }
+
+        case .showStats:
+            selectedTab = .stats
+
+        case .goHome:
+            selectedTab = .home
         }
     }
 }
@@ -574,22 +609,40 @@ struct ErrorView: View {
     /// User-facing error with friendly title, message, icon, and action label
     let error: UserFacingError
 
-    /// Callback for the primary action button (retry, sign in, navigate, etc.)
-    let onRetry: () -> Void
+    /// Callback for the primary action. The error carries which action it is,
+    /// so the caller can reconnect Gmail, sign in, or retry as appropriate.
+    let onAction: (RecoveryAction) -> Void
+
+    /// Seconds left before the action becomes available. Zero means ready.
+    @State private var secondsRemaining = 0
+
+    private let ticker = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
+
+    /// True while a rate limit or server backoff is still counting down
+    private var isWaiting: Bool { secondsRemaining > 0 }
+
+    private var buttonLabel: String {
+        isWaiting ? "Try again in \(secondsRemaining)s" : error.actionLabel
+    }
 
     var body: some View {
         VStack(spacing: 24) {
             Spacer()
 
-            // Error icon — mapped from the error type
+            // Error icon — mapped from the error type. Decorative: the title
+            // and message already carry the meaning.
             Image(systemName: error.iconName)
                 .font(.system(size: 60))
                 .foregroundColor(.orange)
+                .accessibilityHidden(true)
 
             // Title — short, friendly headline
             Text(error.title)
                 .font(.title.bold())
                 .foregroundColor(.primary)
+                .multilineTextAlignment(.center)
+                .minimumScaleFactor(0.7)
+                .padding(.horizontal, 24)
 
             // Message — guidance on what happened and what to do
             Text(error.message)
@@ -600,20 +653,40 @@ struct ErrorView: View {
 
             Spacer()
 
-            // Action button — label matches the error context
-            Button(action: onRetry) {
-                Text(error.actionLabel)
+            // Action button — label matches the error context, and is held
+            // disabled while a countdown is running so the user can't hammer
+            // a rate-limited or struggling server.
+            Button {
+                onAction(error.action)
+            } label: {
+                Text(buttonLabel)
                     .font(.headline)
                     .foregroundColor(Theme.solidFillForeground)
                     .frame(maxWidth: .infinity)
                     .frame(height: 56)
-                    .background(Theme.solidFill)
+                    .background(isWaiting ? Theme.solidFill.opacity(0.5) : Theme.solidFill)
                     .cornerRadius(12)
+                    .minimumScaleFactor(0.7)
             }
+            .disabled(isWaiting)
+            // Static label: the per-second countdown would otherwise interrupt
+            // VoiceOver every tick. The remaining wait is announced once, when
+            // the user focuses the button.
             .accessibilityLabel(error.actionLabel)
-            .accessibilityHint("Attempts to resolve the error: \(error.title)")
+            .accessibilityValue(isWaiting ? "Available in \(secondsRemaining) seconds" : "")
+            .accessibilityHint(isWaiting
+                ? "Waiting before this can be tried again"
+                : "Double tap to \(error.actionLabel.lowercased())")
             .padding(.horizontal, 24)
             .padding(.bottom, 40)
+        }
+        .onAppear {
+            secondsRemaining = error.retryAfterSeconds ?? 0
+        }
+        .onReceive(ticker) { _ in
+            if secondsRemaining > 0 {
+                secondsRemaining -= 1
+            }
         }
     }
 }
@@ -625,6 +698,7 @@ struct ErrorView: View {
 
     SwipeContainerView(selectedTab: $selectedTab)
         .environmentObject(GamificationViewModel())
+        .environmentObject(AuthViewModel())
         .modelContainer(PersistenceController.preview.container)
 }
 
@@ -633,6 +707,7 @@ struct ErrorView: View {
 
     SwipeContainerView(selectedTab: $selectedTab)
         .environmentObject(GamificationViewModel())
+        .environmentObject(AuthViewModel())
         .modelContainer(PersistenceController.preview.container)
         .preferredColorScheme(.dark)
 }
@@ -646,9 +721,17 @@ struct ErrorView: View {
 }
 
 #Preview("Error - Network") {
-    ErrorView(error: UserFacingError.from(.networkError("timeout")), onRetry: {})
+    ErrorView(error: UserFacingError.from(.networkError("timeout")), onAction: { _ in })
 }
 
 #Preview("Error - No Emails") {
-    ErrorView(error: UserFacingError.from(.noEmailsFound), onRetry: {})
+    ErrorView(error: UserFacingError.from(.noEmailsFound), onAction: { _ in })
+}
+
+#Preview("Error - Reconnect Gmail") {
+    ErrorView(error: UserFacingError.from(.gmailReauthRequired), onAction: { _ in })
+}
+
+#Preview("Error - Rate Limited") {
+    ErrorView(error: UserFacingError.from(.rateLimited(retryAfterSeconds: 30)), onAction: { _ in })
 }
