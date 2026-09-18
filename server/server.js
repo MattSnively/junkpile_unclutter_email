@@ -12,6 +12,7 @@ const { generateSessionToken, verifySessionToken } = require('./sessionToken');
 const db = require('./db');
 const userStore = require('./userStore');
 const decisionStore = require('./decisionStore');
+const { CODES, sendError, sendGmailError, unsubscribeFailureCode } = require('./apiErrors');
 
 const app = express();
 // Use Railway's injected PORT in production, fall back to 3000 for local dev
@@ -153,18 +154,12 @@ app.post('/api/auth/mobile', async (req, res) => {
 
     // Validate required parameters
     if (!code) {
-        return res.status(400).json({
-            success: false,
-            error: 'Authorization code is required'
-        });
+        return sendError(res, 400, CODES.VALIDATION_ERROR, 'Authorization code is required');
     }
 
     // Check if Gmail credentials are configured
     if (!hasGmailCredentials()) {
-        return res.status(503).json({
-            success: false,
-            error: 'Gmail credentials not configured on server'
-        });
+        return sendError(res, 503, CODES.SERVER_NOT_CONFIGURED, 'Gmail credentials not configured on server');
     }
 
     try {
@@ -194,10 +189,7 @@ app.post('/api/auth/mobile', async (req, res) => {
 
     } catch (error) {
         console.error('Mobile auth error:', error);
-        res.status(401).json({
-            success: false,
-            error: error.message || 'Failed to exchange authorization code'
-        });
+        sendError(res, 401, CODES.AUTH_INVALID, error.message || 'Failed to exchange authorization code');
     }
 });
 
@@ -221,10 +213,7 @@ app.post('/api/auth/refresh', async (req, res) => {
             try {
                 const user = await userStore.findById(sessionPayload.userId);
                 if (!user || !user.gmailTokens || !user.gmailTokens.refresh_token) {
-                    return res.status(400).json({
-                        success: false,
-                        error: 'No Gmail connection found. Please connect Gmail first.'
-                    });
+                    return sendError(res, 400, CODES.GMAIL_NOT_CONNECTED, 'No Gmail connection found. Please connect Gmail first.');
                 }
 
                 // Use the server-stored refresh token to get a new access token.
@@ -254,20 +243,14 @@ app.post('/api/auth/refresh', async (req, res) => {
 
             } catch (error) {
                 console.error('Apple user token refresh error:', error);
-                return res.status(401).json({
-                    success: false,
-                    error: 'Failed to refresh Gmail token. Please reconnect Gmail.'
-                });
+                return sendError(res, 401, CODES.OAUTH_TOKEN_EXPIRED, 'Failed to refresh Gmail token. Please reconnect Gmail.');
             }
         }
     }
 
     // Google user — use the client-provided refresh token
     if (!refresh_token) {
-        return res.status(400).json({
-            success: false,
-            error: 'Refresh token is required'
-        });
+        return sendError(res, 400, CODES.VALIDATION_ERROR, 'Refresh token is required');
     }
 
     try {
@@ -297,10 +280,7 @@ app.post('/api/auth/refresh', async (req, res) => {
 
     } catch (error) {
         console.error('Token refresh error:', error);
-        res.status(401).json({
-            success: false,
-            error: 'Failed to refresh token. Please sign in again.'
-        });
+        sendError(res, 401, CODES.OAUTH_TOKEN_EXPIRED, 'Failed to refresh token. Please sign in again.');
     }
 });
 
@@ -313,10 +293,7 @@ app.get('/api/auth/validate', async (req, res) => {
     // Extract Bearer token from Authorization header
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return res.status(401).json({
-            valid: false,
-            error: 'No authorization token provided'
-        });
+        return sendError(res, 401, CODES.AUTH_REQUIRED, 'No authorization token provided', { valid: false });
     }
 
     const token = authHeader.substring(7); // Remove 'Bearer ' prefix
@@ -339,10 +316,7 @@ app.get('/api/auth/validate', async (req, res) => {
         } catch (err) {
             console.error('User lookup during validation failed:', err);
         }
-        return res.status(401).json({
-            valid: false,
-            error: 'Session token is valid but user not found'
-        });
+        return sendError(res, 401, CODES.AUTH_INVALID, 'Session token is valid but user not found', { valid: false });
     }
 
     // Fall back to Google access token validation (existing behavior)
@@ -362,10 +336,7 @@ app.get('/api/auth/validate', async (req, res) => {
 
     } catch (error) {
         console.error('Token validation error:', error);
-        res.status(401).json({
-            valid: false,
-            error: 'Token is invalid or expired'
-        });
+        sendError(res, 401, CODES.OAUTH_TOKEN_EXPIRED, 'Token is invalid or expired', { valid: false });
     }
 });
 
@@ -392,10 +363,7 @@ app.post('/api/auth/apple', async (req, res) => {
 
     // Validate required parameters
     if (!identityToken) {
-        return res.status(400).json({
-            success: false,
-            error: 'Apple identity token is required'
-        });
+        return sendError(res, 400, CODES.VALIDATION_ERROR, 'Apple identity token is required');
     }
 
     try {
@@ -437,10 +405,7 @@ app.post('/api/auth/apple', async (req, res) => {
 
     } catch (error) {
         console.error('Apple auth error:', error);
-        res.status(401).json({
-            success: false,
-            error: error.message || 'Apple Sign-In verification failed'
-        });
+        sendError(res, 401, CODES.AUTH_INVALID, error.message || 'Apple Sign-In verification failed');
     }
 });
 
@@ -457,37 +422,25 @@ app.post('/api/auth/connect-gmail', async (req, res) => {
 
     // Validate required parameters
     if (!code) {
-        return res.status(400).json({
-            success: false,
-            error: 'Google authorization code is required'
-        });
+        return sendError(res, 400, CODES.VALIDATION_ERROR, 'Google authorization code is required');
     }
 
     // Authenticate — requires a valid server session token (Apple user)
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return res.status(401).json({
-            success: false,
-            error: 'Authorization required'
-        });
+        return sendError(res, 401, CODES.AUTH_REQUIRED, 'Authorization required');
     }
 
     const token = authHeader.substring(7);
     const sessionPayload = verifySessionToken(token);
 
     if (!sessionPayload) {
-        return res.status(401).json({
-            success: false,
-            error: 'Invalid or expired session token'
-        });
+        return sendError(res, 401, CODES.AUTH_INVALID, 'Invalid or expired session token');
     }
 
     // Check if Gmail credentials are configured on the server
     if (!hasGmailCredentials()) {
-        return res.status(503).json({
-            success: false,
-            error: 'Gmail credentials not configured on server'
-        });
+        return sendError(res, 503, CODES.SERVER_NOT_CONFIGURED, 'Gmail credentials not configured on server');
     }
 
     try {
@@ -508,10 +461,7 @@ app.post('/api/auth/connect-gmail', async (req, res) => {
         // Store the Gmail tokens on the user record
         const user = await userStore.findById(sessionPayload.userId);
         if (!user) {
-            return res.status(404).json({
-                success: false,
-                error: 'User not found'
-            });
+            return sendError(res, 404, CODES.NOT_FOUND, 'User not found');
         }
 
         // Convert expires_in (seconds) to an absolute expiry_date (ms timestamp)
@@ -540,10 +490,7 @@ app.post('/api/auth/connect-gmail', async (req, res) => {
 
     } catch (error) {
         console.error('Connect Gmail error:', error);
-        res.status(401).json({
-            success: false,
-            error: error.message || 'Failed to connect Gmail'
-        });
+        sendError(res, 401, CODES.AUTH_INVALID, error.message || 'Failed to connect Gmail');
     }
 });
 
@@ -588,11 +535,7 @@ async function authenticateRequest(req, res, next) {
                 console.error('User lookup failed:', err);
             }
             // User not found despite valid token — treat as unauthenticated
-            return res.status(401).json({
-                success: false,
-                needsAuth: true,
-                error: 'User not found'
-            });
+            return sendError(res, 401, CODES.AUTH_INVALID, 'User not found');
         }
 
         // Not a server session token — treat as a Google access token (existing behavior).
@@ -601,11 +544,7 @@ async function authenticateRequest(req, res, next) {
         req.authTokens = { access_token: token, refresh_token: null };
         return resolveGoogleUserKey(token)
             .then(userKey => { req.userKey = userKey; next(); })
-            .catch(() => res.status(401).json({
-                success: false,
-                needsAuth: true,
-                error: 'Authentication expired. Please sign in again.'
-            }));
+            .catch(() => sendError(res, 401, CODES.OAUTH_TOKEN_EXPIRED, 'Authentication expired. Please sign in again.'));
     }
 
     // Fall back to session tokens (web)
@@ -613,19 +552,11 @@ async function authenticateRequest(req, res, next) {
         req.authTokens = req.session.tokens;
         return resolveGoogleUserKey(req.session.tokens.access_token)
             .then(userKey => { req.userKey = userKey; next(); })
-            .catch(() => res.status(401).json({
-                success: false,
-                needsAuth: true,
-                error: 'Authentication expired. Please sign in again.'
-            }));
+            .catch(() => sendError(res, 401, CODES.OAUTH_TOKEN_EXPIRED, 'Authentication expired. Please sign in again.'));
     }
 
     // No authentication found
-    return res.status(401).json({
-        success: false,
-        needsAuth: true,
-        error: 'Authentication required'
-    });
+    return sendError(res, 401, CODES.AUTH_REQUIRED, 'Authentication required');
 }
 
 // =============================================================================
@@ -687,20 +618,7 @@ app.get('/api/emails', authenticateRequest, async (req, res) => {
         });
     } catch (error) {
         console.error('Error fetching emails:', error);
-
-        // Check if it's an auth error
-        if (error.code === 401 || error.message.includes('invalid_grant') || error.message.includes('unauthorized_client')) {
-            return res.status(401).json({
-                success: false,
-                needsAuth: true,
-                error: 'Authentication expired. Please sign in again.'
-            });
-        }
-
-        res.status(500).json({
-            success: false,
-            error: error.message
-        });
+        sendGmailError(res, error);
     }
 });
 
@@ -712,18 +630,12 @@ app.post('/api/decision', authenticateRequest, async (req, res) => {
 
         // Validate required fields
         if (!emailId || !decision) {
-            return res.status(400).json({
-                success: false,
-                error: 'emailId and decision are required'
-            });
+            return sendError(res, 400, CODES.VALIDATION_ERROR, 'emailId and decision are required');
         }
 
         // Validate decision value
         if (!['unsubscribe', 'keep'].includes(decision)) {
-            return res.status(400).json({
-                success: false,
-                error: 'decision must be "unsubscribe" or "keep"'
-            });
+            return sendError(res, 400, CODES.VALIDATION_ERROR, 'decision must be "unsubscribe" or "keep"');
         }
 
         // If unsubscribe, execute the actual unsubscribe via cascade
@@ -733,10 +645,17 @@ app.post('/api/decision', authenticateRequest, async (req, res) => {
             oauth2Client.setCredentials(req.authTokens);
             const gmailService = new GmailService(oauth2Client);
 
-            // Get the email to find all unsubscribe data (headers + body)
-            const emailDetails = await gmailService.getEmailDetails(emailId);
-            if (emailDetails && emailDetails.unsubscribeData) {
-                unsubResult = await gmailService.unsubscribe(emailId, emailDetails.unsubscribeData);
+            // Gmail failures here are the caller's token or quota, not our bug,
+            // so classify them instead of letting them fall through to a 500.
+            try {
+                // Get the email to find all unsubscribe data (headers + body)
+                const emailDetails = await gmailService.getEmailDetails(emailId);
+                if (emailDetails && emailDetails.unsubscribeData) {
+                    unsubResult = await gmailService.unsubscribe(emailId, emailDetails.unsubscribeData);
+                }
+            } catch (error) {
+                console.error('Gmail error during decision:', error);
+                return sendGmailError(res, error);
             }
         }
 
@@ -752,6 +671,11 @@ app.post('/api/decision', authenticateRequest, async (req, res) => {
                     error: req.authTokens ? 'no-unsubscribe-data' : 'not-authenticated'
                 }
             };
+        }
+
+        // Stable code alongside the free-text error so the app can pick a recovery action
+        if (unsubResult?.unsubscribeResult) {
+            unsubResult.unsubscribeResult.code = unsubscribeFailureCode(unsubResult.unsubscribeResult.error);
         }
 
         // Record decision (include unsubscribe method used, if any)
@@ -775,7 +699,7 @@ app.post('/api/decision', authenticateRequest, async (req, res) => {
         });
     } catch (error) {
         console.error('Error saving decision:', error);
-        res.status(500).json({ success: false, error: error.message });
+        sendError(res, 500, CODES.SERVER_INTERNAL_ERROR, 'Something went wrong on our side. Please try again.');
     }
 });
 
@@ -817,7 +741,7 @@ app.get('/api/stats', authenticateRequest, async (req, res) => {
         res.json({ success: true, stats });
     } catch (error) {
         console.error('Error getting stats:', error);
-        res.status(500).json({ success: false, error: error.message });
+        sendError(res, 500, CODES.SERVER_INTERNAL_ERROR, 'Something went wrong on our side. Please try again.');
     }
 });
 
