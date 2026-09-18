@@ -67,3 +67,8 @@ Pods/
 .dolt/
 *.db
 .beads-credential-key
+
+# Google sign-in brand assets — re-downloadable from Google, and the app
+# ships its own GoogleG.imageset in ios/.../Assets.xcassets
+/signin-assets/
+/google-signin-assets.zip
