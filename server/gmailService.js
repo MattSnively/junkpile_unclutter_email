@@ -126,6 +126,44 @@ class GmailService {
     }
 
     /**
+     * Counts distinct senders among the most recent matching messages.
+     *
+     * Onboarding needs a number fast, so this scans a bounded sample of
+     * message headers rather than the whole inbox. The result is a floor, not
+     * an estimate: the true subscription count is at least this high. It is
+     * deliberately not extrapolated, because distinct senders saturate as the
+     * sample grows and scaling up would overstate the number.
+     *
+     * @param {Object} [options]
+     * @param {Set<string>} [options.excludeSenders] - Senders already decided
+     * @param {number} [options.sampleSize=50] - Messages to examine
+     * @returns {Promise<{uniqueSenders: number, scanned: number, totalMatchesEstimate: number}>}
+     */
+    async countUnsubscribeSenders({ excludeSenders = new Set(), sampleSize = 50 } = {}) {
+        const response = await this.gmail.users.messages.list({
+            userId: 'me',
+            q: 'unsubscribe OR list-unsubscribe newer_than:30d',
+            maxResults: sampleSize
+        });
+
+        const messages = response.data.messages || [];
+        const senders = await Promise.all(messages.map(msg => this.getSenderAddress(msg.id)));
+
+        const unique = new Set();
+        for (const sender of senders) {
+            if (sender && !excludeSenders.has(sender)) {
+                unique.add(sender);
+            }
+        }
+
+        return {
+            uniqueSenders: unique.size,
+            scanned: messages.length,
+            totalMatchesEstimate: response.data.resultSizeEstimate || 0
+        };
+    }
+
+    /**
      * Fetches full details for a single email by message ID.
      * Extracts headers, body, and all unsubscribe-related data.
      *
