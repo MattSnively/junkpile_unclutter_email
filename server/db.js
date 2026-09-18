@@ -38,8 +38,12 @@ async function initSchema() {
             email_id           TEXT NOT NULL,
             decision           TEXT NOT NULL,
             unsubscribe_method TEXT,
+            sender_address     TEXT,
             created_at         TIMESTAMPTZ NOT NULL DEFAULT now()
         );
+
+        -- Column added after the table shipped; CREATE TABLE IF NOT EXISTS won't add it
+        ALTER TABLE decisions ADD COLUMN IF NOT EXISTS sender_address TEXT;
 
         CREATE INDEX IF NOT EXISTS decisions_user_key_idx ON decisions (user_key);
     `);
