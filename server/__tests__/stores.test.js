@@ -173,5 +173,20 @@ describeWithDb('stores (Postgres)', () => {
             expect(await decisionStore.getStats('google:other@gmail.com')).toEqual({ totalDecisions: 1, totalUnsubscribes: 1 });
             expect(await decisionStore.getStats('nobody')).toEqual({ totalDecisions: 0, totalUnsubscribes: 0 });
         });
+
+        test('getDecided returns this user\'s message IDs and sender addresses', async () => {
+            await decisionStore.recordDecision('u1', { emailId: 'm1', decision: 'keep', senderAddress: 'a@x.com' });
+            await decisionStore.recordDecision('u1', { emailId: 'm2', decision: 'unsubscribe', senderAddress: 'b@y.com' });
+            await decisionStore.recordDecision('u1', { emailId: 'm3', decision: 'keep' }); // legacy row, no sender
+            await decisionStore.recordDecision('u2', { emailId: 'm9', decision: 'keep', senderAddress: 'z@z.com' });
+
+            const decided = await decisionStore.getDecided('u1');
+            expect([...decided.emailIds].sort()).toEqual(['m1', 'm2', 'm3']);
+            expect([...decided.senders].sort()).toEqual(['a@x.com', 'b@y.com']);
+
+            const none = await decisionStore.getDecided('nobody');
+            expect(none.emailIds.size).toBe(0);
+            expect(none.senders.size).toBe(0);
+        });
     });
 });

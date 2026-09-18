@@ -610,7 +610,13 @@ app.get('/api/emails', authenticateRequest, async (req, res) => {
         oauth2Client.setCredentials(req.authTokens);
         const gmailService = new GmailService(oauth2Client);
 
-        const emails = await gmailService.getEmailsWithUnsubscribe();
+        // Skip anything this user already decided on, otherwise the same
+        // senders come back every session until newer mail displaces them.
+        const decided = await decisionStore.getDecided(req.userKey);
+        const emails = await gmailService.getEmailsWithUnsubscribe({
+            excludeIds: decided.emailIds,
+            excludeSenders: decided.senders
+        });
 
         res.json({
             success: true,
@@ -641,17 +647,27 @@ app.post('/api/decision', authenticateRequest, async (req, res) => {
         // If unsubscribe, execute the actual unsubscribe via cascade
         // (RFC 8058 one-click → HTTP header URLs → HTTP body URL → mailto fallback)
         let unsubResult = null;
-        if (decision === 'unsubscribe' && req.authTokens) {
+        // Sender address is stored with the decision so later batches can skip
+        // this sender entirely, not just this one message.
+        let senderAddress = null;
+        if (req.authTokens) {
             oauth2Client.setCredentials(req.authTokens);
             const gmailService = new GmailService(oauth2Client);
 
             // Gmail failures here are the caller's token or quota, not our bug,
             // so classify them instead of letting them fall through to a 500.
             try {
-                // Get the email to find all unsubscribe data (headers + body)
-                const emailDetails = await gmailService.getEmailDetails(emailId);
-                if (emailDetails && emailDetails.unsubscribeData) {
-                    unsubResult = await gmailService.unsubscribe(emailId, emailDetails.unsubscribeData);
+                if (decision === 'unsubscribe') {
+                    // Get the email to find all unsubscribe data (headers + body)
+                    const emailDetails = await gmailService.getEmailDetails(emailId);
+                    if (emailDetails) {
+                        senderAddress = gmailService.extractSenderAddress(emailDetails.rawHeaders.from);
+                        if (emailDetails.unsubscribeData) {
+                            unsubResult = await gmailService.unsubscribe(emailId, emailDetails.unsubscribeData);
+                        }
+                    }
+                } else {
+                    senderAddress = await gmailService.getSenderAddress(emailId);
                 }
             } catch (error) {
                 console.error('Gmail error during decision:', error);
@@ -682,7 +698,8 @@ app.post('/api/decision', authenticateRequest, async (req, res) => {
         await decisionStore.recordDecision(req.userKey, {
             emailId,
             decision,
-            unsubscribeMethod: unsubResult?.unsubscribeResult?.method || null
+            unsubscribeMethod: unsubResult?.unsubscribeResult?.method || null,
+            senderAddress
         });
 
         // Return response with unsubscribe execution details

@@ -41,46 +41,87 @@ class GmailService {
     /**
      * Fetches emails that contain unsubscribe options from the user's inbox.
      * Searches for emails with "unsubscribe" or "list-unsubscribe" in the last 30 days,
-     * then deduplicates by sender domain (one email per sender).
+     * skips anything the user has already decided on, and deduplicates by
+     * sender domain (one email per sender). Pages through Gmail results until
+     * the batch is full or the scan cap is reached, because the newest matches
+     * are mostly senders the user has already handled.
      *
+     * @param {Object} [options]
+     * @param {Set<string>} [options.excludeIds] - Message IDs already decided
+     * @param {Set<string>} [options.excludeSenders] - Sender addresses already decided
+     * @param {number} [options.limit=20] - Batch size to return
+     * @param {number} [options.maxScan=200] - Upper bound on messages examined
      * @returns {Promise<Array>} Array of email objects with unsubscribe data
      */
-    async getEmailsWithUnsubscribe() {
+    async getEmailsWithUnsubscribe({ excludeIds = new Set(), excludeSenders = new Set(), limit = 20, maxScan = 200 } = {}) {
         try {
-            // Search for emails with unsubscribe links in the last 30 days
-            const response = await this.gmail.users.messages.list({
-                userId: 'me',
-                q: 'unsubscribe OR list-unsubscribe newer_than:30d',
-                maxResults: 50
-            });
-
-            if (!response.data.messages) {
-                return [];
-            }
-
-            // Fetch full details for each email
-            const emails = await Promise.all(
-                response.data.messages.map(msg => this.getEmailDetails(msg.id))
-            );
-
-            // Filter and deduplicate by sender domain
-            const seenDomains = new Set();
+            const seenSenders = new Set(excludeSenders);
             const uniqueEmails = [];
+            let pageToken;
+            let scanned = 0;
 
-            for (const email of emails) {
-                if (email && email.unsubscribeUrl) {
-                    const domain = this.extractDomain(email.sender);
-                    if (!seenDomains.has(domain)) {
-                        seenDomains.add(domain);
-                        uniqueEmails.push(email);
+            do {
+                // Search for emails with unsubscribe links in the last 30 days
+                const response = await this.gmail.users.messages.list({
+                    userId: 'me',
+                    q: 'unsubscribe OR list-unsubscribe newer_than:30d',
+                    maxResults: 50,
+                    pageToken
+                });
+
+                const messages = response.data.messages || [];
+                scanned += messages.length;
+
+                // Skip decided IDs before paying for a details fetch
+                const emails = await Promise.all(
+                    messages
+                        .filter(msg => !excludeIds.has(msg.id))
+                        .map(msg => this.getEmailDetails(msg.id))
+                );
+
+                for (const email of emails) {
+                    if (email && email.unsubscribeUrl) {
+                        const sender = this.extractSenderAddress(email.rawHeaders.from);
+                        if (!seenSenders.has(sender)) {
+                            seenSenders.add(sender);
+                            uniqueEmails.push(email);
+                            if (uniqueEmails.length >= limit) break;
+                        }
                     }
                 }
-            }
+
+                pageToken = response.data.nextPageToken;
+            } while (pageToken && uniqueEmails.length < limit && scanned < maxScan);
 
             return uniqueEmails;
         } catch (error) {
             console.error('Error fetching emails:', error);
             throw error;
+        }
+    }
+
+    /**
+     * Resolves the sender address of a message from its From header alone.
+     * Used when recording a "keep" decision, where the full message is not
+     * otherwise fetched.
+     *
+     * @param {string} messageId - Gmail message ID
+     * @returns {Promise<string|null>} Lowercased sender address, or null on error
+     */
+    async getSenderAddress(messageId) {
+        try {
+            const response = await this.gmail.users.messages.get({
+                userId: 'me',
+                id: messageId,
+                format: 'metadata',
+                metadataHeaders: ['From']
+            });
+            const from = (response.data.payload?.headers || [])
+                .find(h => h.name.toLowerCase() === 'from');
+            return from ? this.extractSenderAddress(from.value) : null;
+        } catch (error) {
+            console.error('Error fetching sender for message:', error.message);
+            return null;
         }
     }
 
@@ -277,6 +318,19 @@ class GmailService {
     extractDomain(from) {
         const emailMatch = from.match(/[\w.-]+@([\w.-]+)/);
         return emailMatch ? emailMatch[1] : from;
+    }
+
+    /**
+     * Extracts the full sender address for dedupe against past decisions.
+     * The address, not the domain, is the identity of a mailing list:
+     * platforms like Substack put many unrelated newsletters on one domain.
+     *
+     * @param {string} from - Raw From header value
+     * @returns {string} Lowercased address, or the input when no address is found
+     */
+    extractSenderAddress(from) {
+        const emailMatch = from.match(/[\w.+-]+@[\w.-]+/);
+        return (emailMatch ? emailMatch[0] : from).toLowerCase();
     }
 
     /**
