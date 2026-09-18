@@ -130,6 +130,77 @@ describe('GmailService batch building', () => {
     });
 });
 
+describe('countUnsubscribeSenders', () => {
+    let service;
+
+    beforeEach(() => {
+        service = new GmailService({ credentials: {} });
+        jest.spyOn(console, 'error').mockImplementation(() => {});
+    });
+
+    afterEach(() => jest.restoreAllMocks());
+
+    test('counts distinct senders, case-insensitively', async () => {
+        stubGmail(service, [[
+            { id: 'a', from: 'One <news@one.com>' },
+            { id: 'b', from: 'One Again <NEWS@one.com>' },
+            { id: 'c', from: 'Two <hi@two.com>' }
+        ]]);
+
+        const result = await service.countUnsubscribeSenders();
+        expect(result).toMatchObject({ uniqueSenders: 2, scanned: 3 });
+    });
+
+    test('excludes senders the user already decided on', async () => {
+        stubGmail(service, [[
+            { id: 'a', from: 'news@one.com' },
+            { id: 'b', from: 'hi@two.com' }
+        ]]);
+
+        const result = await service.countUnsubscribeSenders({ excludeSenders: new Set(['news@one.com']) });
+        expect(result.uniqueSenders).toBe(1);
+    });
+
+    test('does not scale the sample up to the match estimate', async () => {
+        const service2 = new GmailService({ credentials: {} });
+        service2.gmail = {
+            users: {
+                messages: {
+                    list: jest.fn(async () => ({ data: { messages: [{ id: 'a' }], resultSizeEstimate: 900 } })),
+                    get: jest.fn(async () => ({ data: { payload: { headers: [{ name: 'From', value: 'a@x.com' }] } } }))
+                }
+            }
+        };
+
+        const result = await service2.countUnsubscribeSenders();
+        expect(result).toEqual({ uniqueSenders: 1, scanned: 1, totalMatchesEstimate: 900 });
+    });
+
+    test('returns zero for an inbox with no matches', async () => {
+        service.gmail = { users: { messages: { list: jest.fn(async () => ({ data: {} })) } } };
+        expect(await service.countUnsubscribeSenders()).toEqual({
+            uniqueSenders: 0, scanned: 0, totalMatchesEstimate: 0
+        });
+    });
+
+    test('skips messages whose sender could not be read', async () => {
+        service.gmail = {
+            users: {
+                messages: {
+                    list: jest.fn(async () => ({ data: { messages: [{ id: 'a' }, { id: 'b' }], resultSizeEstimate: 2 } })),
+                    get: jest.fn(async ({ id }) => {
+                        if (id === 'a') throw new Error('boom');
+                        return { data: { payload: { headers: [{ name: 'From', value: 'b@x.com' }] } } };
+                    })
+                }
+            }
+        };
+
+        const result = await service.countUnsubscribeSenders();
+        expect(result).toMatchObject({ uniqueSenders: 1, scanned: 2 });
+    });
+});
+
 describe('extractSenderAddress', () => {
     const service = new GmailService({ credentials: {} });
 

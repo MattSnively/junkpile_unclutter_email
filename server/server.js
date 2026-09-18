@@ -559,6 +559,19 @@ async function authenticateRequest(req, res, next) {
     return sendError(res, 401, CODES.AUTH_REQUIRED, 'Authentication required');
 }
 
+/**
+ * Guards routes that need Gmail access. An Apple user who signed in but never
+ * connected Gmail has no tokens; without this the Gmail call fails and gets
+ * reported as an unreachable-Gmail error, so the app tells them to retry when
+ * what they actually need is to connect Gmail.
+ */
+function requireGmail(req, res, next) {
+    if (!req.authTokens?.access_token) {
+        return sendError(res, 400, CODES.GMAIL_NOT_CONNECTED, 'Connect Gmail to continue.');
+    }
+    next();
+}
+
 // =============================================================================
 // WEB AUTH ROUTES (original session-based authentication)
 // =============================================================================
@@ -604,7 +617,7 @@ app.get('/auth/google/callback', async (req, res) => {
 
 // Get emails endpoint
 // Updated to support both session (web) and Bearer token (mobile) authentication
-app.get('/api/emails', authenticateRequest, async (req, res) => {
+app.get('/api/emails', authenticateRequest, requireGmail, async (req, res) => {
     try {
         // Use tokens from middleware (works for both web and mobile)
         oauth2Client.setCredentials(req.authTokens);
@@ -717,6 +730,32 @@ app.post('/api/decision', authenticateRequest, async (req, res) => {
     } catch (error) {
         console.error('Error saving decision:', error);
         sendError(res, 500, CODES.SERVER_INTERNAL_ERROR, 'Something went wrong on our side. Please try again.');
+    }
+});
+
+/**
+ * Approximate subscription count for onboarding. Scans a bounded sample of
+ * recent mail, so it answers quickly and is honest about being a floor
+ * rather than a full inbox tally.
+ */
+app.get('/api/subscriptions/count', authenticateRequest, requireGmail, async (req, res) => {
+    try {
+        oauth2Client.setCredentials(req.authTokens);
+        const gmailService = new GmailService(oauth2Client);
+
+        const decided = await decisionStore.getDecided(req.userKey);
+        const result = await gmailService.countUnsubscribeSenders({ excludeSenders: decided.senders });
+
+        res.json({
+            success: true,
+            count: result.uniqueSenders,
+            // The count is a floor unless the scan exhausted the matches
+            isMinimum: result.scanned > 0 && result.totalMatchesEstimate > result.scanned,
+            scanned: result.scanned
+        });
+    } catch (error) {
+        console.error('Error counting subscriptions:', error);
+        sendGmailError(res, error);
     }
 });
 
