@@ -720,6 +720,57 @@ app.post('/api/decision', authenticateRequest, async (req, res) => {
     }
 });
 
+/**
+ * Revokes a Google OAuth grant. Either token works: revoking an access token
+ * also revokes its refresh token. Best-effort — a failure here must not keep
+ * the user's data on our side, so callers log and continue.
+ *
+ * @param {string} token - Access or refresh token
+ */
+async function revokeGoogleToken(token) {
+    const response = await fetch('https://oauth2.googleapis.com/revoke', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({ token }).toString()
+    });
+    if (!response.ok) {
+        throw new Error(`Google revoke returned ${response.status}`);
+    }
+}
+
+/**
+ * Permanently delete the caller's account: revoke the Google grant, remove
+ * their decisions, and remove the user row (Apple users only; Google users
+ * have none). Required for App Review — the iOS Settings screen calls this
+ * after a double confirmation and then signs out locally.
+ */
+app.delete('/api/account', authenticateRequest, async (req, res) => {
+    try {
+        const token = req.authTokens?.refresh_token || req.authTokens?.access_token;
+        if (token) {
+            try {
+                await revokeGoogleToken(token);
+            } catch (error) {
+                console.error('Google token revoke failed during account deletion:', error.message);
+            }
+        }
+
+        const decisionsRemoved = await decisionStore.deleteByUser(req.userKey);
+        const userRemoved = req.user ? await userStore.deleteUser(req.user.id) : false;
+
+        // The Google-token cache would otherwise keep resolving a revoked token
+        if (req.authTokens?.access_token) {
+            googleUserKeys.delete(crypto.createHash('sha256').update(req.authTokens.access_token).digest('hex'));
+        }
+
+        console.log(`Account deleted: decisions=${decisionsRemoved} userRow=${userRemoved}`);
+        res.json({ success: true, message: 'Account deleted' });
+    } catch (error) {
+        console.error('Error deleting account:', error);
+        sendError(res, 500, CODES.SERVER_INTERNAL_ERROR, 'Could not delete your account. Please try again.');
+    }
+});
+
 // Logout endpoint — handles both web sessions and Apple user sessions
 app.post('/api/logout', async (req, res) => {
     // Check if this is an Apple user logging out (server session token)

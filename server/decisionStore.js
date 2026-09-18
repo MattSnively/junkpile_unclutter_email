@@ -66,4 +66,15 @@ async function getStats(userKey) {
     };
 }
 
-module.exports = { recordDecision, getDecided, getStats };
+/**
+ * Removes every decision for a user. Used for account deletion.
+ *
+ * @param {string} userKey
+ * @returns {Promise<number>} Rows deleted
+ */
+async function deleteByUser(userKey) {
+    const { rowCount } = await pool.query('DELETE FROM decisions WHERE user_key = $1', [userKey]);
+    return rowCount;
+}
+
+module.exports = { recordDecision, getDecided, getStats, deleteByUser };

@@ -188,5 +188,16 @@ describeWithDb('stores (Postgres)', () => {
             expect(none.emailIds.size).toBe(0);
             expect(none.senders.size).toBe(0);
         });
+
+        test('deleteByUser removes only that user\'s decisions', async () => {
+            await decisionStore.recordDecision('gone', { emailId: 'm1', decision: 'keep' });
+            await decisionStore.recordDecision('gone', { emailId: 'm2', decision: 'unsubscribe' });
+            await decisionStore.recordDecision('stays', { emailId: 'm3', decision: 'keep' });
+
+            expect(await decisionStore.deleteByUser('gone')).toBe(2);
+            expect(await decisionStore.deleteByUser('gone')).toBe(0);
+            expect(await decisionStore.getStats('gone')).toEqual({ totalDecisions: 0, totalUnsubscribes: 0 });
+            expect(await decisionStore.getStats('stays')).toEqual({ totalDecisions: 1, totalUnsubscribes: 0 });
+        });
     });
 });
