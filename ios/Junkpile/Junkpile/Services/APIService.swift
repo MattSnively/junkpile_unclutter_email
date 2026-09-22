@@ -375,20 +375,13 @@ final class APIService {
                 throw APIError.invalidResponse
             }
 
-            // Handle HTTP errors
-            switch httpResponse.statusCode {
-            case 200...299:
-                break // Success
-            case 401:
-                throw APIError.authenticationRequired
-            case 403:
-                throw APIError.tokenExpired
-            default:
-                // Try to decode error message from response
-                if let errorResponse = try? JSONDecoder().decode(APIResponse.self, from: data) {
-                    throw APIError.serverError(errorResponse.error ?? "HTTP \(httpResponse.statusCode)")
-                }
-                throw APIError.serverError("HTTP \(httpResponse.statusCode)")
+            // Handle HTTP errors. The backend tags every error body with a
+            // stable `code`, which says what the user can actually do about
+            // it — a 403 for a dead token and a 403 for a Gmail rate limit
+            // need different recovery. Status code is the fallback.
+            if !(200...299).contains(httpResponse.statusCode) {
+                let body = try? JSONDecoder().decode(APIErrorBody.self, from: data)
+                throw APIError.from(body: body, statusCode: httpResponse.statusCode)
             }
 
             // Decode the response

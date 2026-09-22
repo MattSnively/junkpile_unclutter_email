@@ -624,9 +624,11 @@ struct SettingsView: View {
             let response = try await APIService.shared.validateToken()
             gmailStatus = response.valid ? .connected : .disconnected
         } catch let error as APIError {
-            // Distinguish auth failures (disconnected) from network errors
+            // Distinguish auth failures (disconnected) from network errors.
+            // A dead or unscoped Gmail grant now arrives as its own code
+            // rather than a bare 401, and still means "disconnected".
             switch error {
-            case .authenticationRequired, .tokenExpired:
+            case .authenticationRequired, .tokenExpired, .gmailReauthRequired, .gmailNotConnected:
                 gmailStatus = .disconnected
             case .networkError:
                 gmailStatus = .error("Offline")
