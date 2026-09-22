@@ -29,8 +29,8 @@ on:
 env:
   SCHEME: Junkpile
   PROJECT_PATH: ios/Junkpile/Junkpile.xcodeproj
-  SIMULATOR_NAME: iPhone 16
-  IOS_VERSION: "18.0"
+  # No simulator model or iOS version is pinned: builds use a generic
+  # destination and the boot step takes whatever the image ships.
 
 jobs:
   # =============================================================================
@@ -38,7 +38,7 @@ jobs:
   # =============================================================================
   build:
     name: Build iOS App
-    runs-on: macos-15  # macOS Sequoia with Xcode 16
+    runs-on: macos-26  # ships Xcode 26.x / iOS 26 SDK, which App Store Connect requires
 
     steps:
       # Checkout the repository
@@ -47,7 +47,13 @@ jobs:
 
       # Select Xcode version
       - name: Select Xcode version
-        run: sudo xcode-select -s /Applications/Xcode_16.4.app/Contents/Developer
+        run: |
+          # Select the newest installed Xcode rather than pinning a path.
+          # A hardcoded Xcode_16.4 is what broke uploads when Apple raised
+          # the minimum SDK to iOS 26.
+          LATEST=$(ls -d /Applications/Xcode_*.app | sort -V | tail -1)
+          echo "Selecting $LATEST"
+          sudo xcode-select -s "$LATEST/Contents/Developer"
 
       # Display Xcode version for debugging
       - name: Show Xcode version
@@ -72,7 +78,7 @@ jobs:
           xcodebuild build \
             -project Junkpile.xcodeproj \
             -scheme ${{ env.SCHEME }} \
-            -destination "platform=iOS Simulator,name=${{ env.SIMULATOR_NAME }}" \
+            -destination "generic/platform=iOS Simulator" \
             -configuration Debug \
             CODE_SIGNING_ALLOWED=NO \
             | xcpretty --color
@@ -91,7 +97,7 @@ jobs:
   # =============================================================================
   test:
     name: Run Tests
-    runs-on: macos-15
+    runs-on: macos-26
     needs: build  # Only run tests if build succeeds
 
     steps:
@@ -99,14 +105,27 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Select Xcode version
-        run: sudo xcode-select -s /Applications/Xcode_16.4.app/Contents/Developer
+        run: |
+          # Select the newest installed Xcode rather than pinning a path.
+          # A hardcoded Xcode_16.4 is what broke uploads when Apple raised
+          # the minimum SDK to iOS 26.
+          LATEST=$(ls -d /Applications/Xcode_*.app | sort -V | tail -1)
+          echo "Selecting $LATEST"
+          sudo xcode-select -s "$LATEST/Contents/Developer"
 
-      # Boot the simulator ahead of time for faster test execution
+      # Boot a simulator ahead of time for faster test execution.
+      # Picks whatever iPhone the image ships rather than naming a model:
+      # the device list changes with every runner image, and the old
+      # hardcoded name would have failed this step outright once it was gone.
       - name: Boot Simulator
         run: |
-          UDID=$(xcrun simctl list devices available | grep "${{ env.SIMULATOR_NAME }}" | head -1 | grep -oE '[0-9A-F-]{36}')
-          xcrun simctl boot "$UDID" || true
-          xcrun simctl list devices | grep Booted
+          UDID=$(xcrun simctl list devices available | grep -oE '\(([0-9A-F-]{36})\)' | tr -d '()' | head -1)
+          if [ -n "$UDID" ]; then
+            xcrun simctl boot "$UDID" || true
+            xcrun simctl list devices | grep Booted || echo "No simulator booted"
+          else
+            echo "No available simulators on this image"
+          fi
 
       # Run tests
       - name: Run Unit Tests
@@ -115,7 +134,7 @@ jobs:
           xcodebuild test \
             -project Junkpile.xcodeproj \
             -scheme ${{ env.SCHEME }} \
-            -destination "platform=iOS Simulator,name=${{ env.SIMULATOR_NAME }}" \
+            -destination "generic/platform=iOS Simulator" \
             -configuration Debug \
             CODE_SIGNING_ALLOWED=NO \
             -resultBundlePath TestResults \
@@ -136,7 +155,7 @@ jobs:
   # =============================================================================
   archive:
     name: Create Archive
-    runs-on: macos-15
+    runs-on: macos-26
     needs: [build, test]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
 
@@ -145,7 +164,13 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Select Xcode version
-        run: sudo xcode-select -s /Applications/Xcode_16.4.app/Contents/Developer
+        run: |
+          # Select the newest installed Xcode rather than pinning a path.
+          # A hardcoded Xcode_16.4 is what broke uploads when Apple raised
+          # the minimum SDK to iOS 26.
+          LATEST=$(ls -d /Applications/Xcode_*.app | sort -V | tail -1)
+          echo "Selecting $LATEST"
+          sudo xcode-select -s "$LATEST/Contents/Developer"
 
       # Archive for generic iOS device (no signing - just validates the archive)
       - name: Create Archive
@@ -175,7 +200,7 @@ jobs:
   # =============================================================================
   lint:
     name: Swift Lint
-    runs-on: macos-15
+    runs-on: macos-26
 
     steps:
       - name: Checkout code
@@ -198,7 +223,7 @@ jobs:
   # =============================================================================
   deploy-testflight:
     name: Deploy to TestFlight
-    runs-on: macos-15
+    runs-on: macos-26
     needs: [build, test]
     # Only deploy on manual triggers or version tag pushes — never on regular branch pushes or PRs
     if: >
@@ -218,7 +243,13 @@ jobs:
       # Step 2: Select Xcode version (must match other jobs)
       # -----------------------------------------------------------------------
       - name: Select Xcode version
-        run: sudo xcode-select -s /Applications/Xcode_16.4.app/Contents/Developer
+        run: |
+          # Select the newest installed Xcode rather than pinning a path.
+          # A hardcoded Xcode_16.4 is what broke uploads when Apple raised
+          # the minimum SDK to iOS 26.
+          LATEST=$(ls -d /Applications/Xcode_*.app | sort -V | tail -1)
+          echo "Selecting $LATEST"
+          sudo xcode-select -s "$LATEST/Contents/Developer"
 
       # -----------------------------------------------------------------------
       # Step 3: Install the Apple distribution certificate into a temporary keychain
