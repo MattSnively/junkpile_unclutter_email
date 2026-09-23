@@ -141,7 +141,7 @@ enum Achievement: String, CaseIterable, Identifiable {
     /// SF Symbol icon name for this achievement
     var iconName: String {
         switch self {
-        case .firstStep: return "foot.fill"
+        case .firstStep: return "stairs"
         case .gettingStarted: return "checkmark.circle.fill"
         case .inboxZeroHero: return "tray.fill"
         case .cleanSweep: return "wind"

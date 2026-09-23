@@ -68,6 +68,7 @@
 		100000000000000000000500 /* APIErrorMappingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000500 /* APIErrorMappingTests.swift */; };
 		100000000000000000000501 /* UserFacingErrorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000501 /* UserFacingErrorTests.swift */; };
 		100000000000000000000502 /* UnsubscribeOutcomeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000502 /* UnsubscribeOutcomeTests.swift */; };
+		100000000000000000000503 /* AchievementIconTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000503 /* AchievementIconTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -88,6 +89,7 @@
 		200000000000000000000500 /* APIErrorMappingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIErrorMappingTests.swift; sourceTree = "<group>"; };
 		200000000000000000000501 /* UserFacingErrorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserFacingErrorTests.swift; sourceTree = "<group>"; };
 		200000000000000000000502 /* UnsubscribeOutcomeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnsubscribeOutcomeTests.swift; sourceTree = "<group>"; };
+		200000000000000000000503 /* AchievementIconTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AchievementIconTests.swift; sourceTree = "<group>"; };
 		/* Models */
 		200000000000000000000001 /* PlayerProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerProfile.swift; sourceTree = "<group>"; };
 		200000000000000000000002 /* Session.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Session.swift; sourceTree = "<group>"; };
@@ -183,6 +185,7 @@
 				200000000000000000000500 /* APIErrorMappingTests.swift */,
 				200000000000000000000501 /* UserFacingErrorTests.swift */,
 				200000000000000000000502 /* UnsubscribeOutcomeTests.swift */,
+				200000000000000000000503 /* AchievementIconTests.swift */,
 			);
 			path = JunkpileTests;
 			sourceTree = "<group>";
@@ -507,6 +510,7 @@
 				100000000000000000000500 /* APIErrorMappingTests.swift in Sources */,
 				100000000000000000000501 /* UserFacingErrorTests.swift in Sources */,
 				100000000000000000000502 /* UnsubscribeOutcomeTests.swift in Sources */,
+				100000000000000000000503 /* AchievementIconTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
