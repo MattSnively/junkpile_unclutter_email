@@ -76,6 +76,17 @@
 		<true/>
 	</dict>
 
+	<!-- Export Compliance -->
+	<!-- The app implements no encryption of its own: no CryptoKit, no          -->
+	<!-- CommonCrypto, no bundled crypto libraries. It only uses what the OS    -->
+	<!-- provides — TLS via URLSession and Keychain for token storage — which   -->
+	<!-- is exempt. Declaring this here stops App Store Connect asking the      -->
+	<!-- encryption questions on every submission. Revisit if the app ever      -->
+	<!-- implements its own algorithm; the backend's AES-256-GCM is server-side -->
+	<!-- and does not apply to the distributed binary.                          -->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
+
 	<!-- Privacy Descriptions -->
 	<key>NSUserTrackingUsageDescription</key>
 	<string>We do not track you. This permission is only requested if required by ad networks.</string>
