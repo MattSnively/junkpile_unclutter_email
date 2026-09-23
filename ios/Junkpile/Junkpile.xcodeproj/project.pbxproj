@@ -64,11 +64,30 @@
 		100000000000000000000133 /* UndoButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000133 /* UndoButton.swift */; };
 		/* Assets */
 		100000000000000000000200 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000200 /* Assets.xcassets */; };
+		/* Tests */
+		100000000000000000000500 /* APIErrorMappingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000500 /* APIErrorMappingTests.swift */; };
+		100000000000000000000501 /* UserFacingErrorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000501 /* UserFacingErrorTests.swift */; };
+		100000000000000000000502 /* UnsubscribeOutcomeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000502 /* UnsubscribeOutcomeTests.swift */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		A00000000000000000000001 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 800000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 600000000000000000000001;
+			remoteInfo = Junkpile;
+		};
+/* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
 		/* Product */
 		300000000000000000000001 /* Junkpile.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Junkpile.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		300000000000000000000002 /* JunkpileTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = JunkpileTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		/* Tests */
+		200000000000000000000500 /* APIErrorMappingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIErrorMappingTests.swift; sourceTree = "<group>"; };
+		200000000000000000000501 /* UserFacingErrorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserFacingErrorTests.swift; sourceTree = "<group>"; };
+		200000000000000000000502 /* UnsubscribeOutcomeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnsubscribeOutcomeTests.swift; sourceTree = "<group>"; };
 		/* Models */
 		200000000000000000000001 /* PlayerProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerProfile.swift; sourceTree = "<group>"; };
 		200000000000000000000002 /* Session.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Session.swift; sourceTree = "<group>"; };
@@ -139,6 +158,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		400000000000000000000011 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -146,8 +172,19 @@
 			isa = PBXGroup;
 			children = (
 				500000000000000000000001 /* Junkpile */,
+				500000000000000000000090 /* JunkpileTests */,
 				500000000000000000000002 /* Products */,
 			);
+			sourceTree = "<group>";
+		};
+		500000000000000000000090 /* JunkpileTests */ = {
+			isa = PBXGroup;
+			children = (
+				200000000000000000000500 /* APIErrorMappingTests.swift */,
+				200000000000000000000501 /* UserFacingErrorTests.swift */,
+				200000000000000000000502 /* UnsubscribeOutcomeTests.swift */,
+			);
+			path = JunkpileTests;
 			sourceTree = "<group>";
 		};
 		500000000000000000000001 /* Junkpile */ = {
@@ -171,6 +208,7 @@
 			isa = PBXGroup;
 			children = (
 				300000000000000000000001 /* Junkpile.app */,
+				300000000000000000000002 /* JunkpileTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -348,6 +386,23 @@
 			productReference = 300000000000000000000001 /* Junkpile.app */;
 			productType = "com.apple.product-type.application";
 		};
+		600000000000000000000002 /* JunkpileTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 700000000000000000000003 /* Build configuration list for PBXNativeTarget "JunkpileTests" */;
+			buildPhases = (
+				400000000000000000000010 /* Sources */,
+				400000000000000000000011 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				B00000000000000000000001 /* PBXTargetDependency */,
+			);
+			name = JunkpileTests;
+			productName = JunkpileTests;
+			productReference = 300000000000000000000002 /* JunkpileTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -360,6 +415,10 @@
 				TargetAttributes = {
 					600000000000000000000001 = {
 						CreatedOnToolsVersion = 15.0;
+					};
+					600000000000000000000002 = {
+						CreatedOnToolsVersion = 15.0;
+						TestTargetID = 600000000000000000000001;
 					};
 				};
 			};
@@ -377,6 +436,7 @@
 			projectRoot = "";
 			targets = (
 				600000000000000000000001 /* Junkpile */,
+				600000000000000000000002 /* JunkpileTests */,
 			);
 		};
 /* End PBXProject section */
@@ -440,7 +500,25 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		400000000000000000000010 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				100000000000000000000500 /* APIErrorMappingTests.swift in Sources */,
+				100000000000000000000501 /* UserFacingErrorTests.swift in Sources */,
+				100000000000000000000502 /* UnsubscribeOutcomeTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		B00000000000000000000001 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 600000000000000000000001 /* Junkpile */;
+			targetProxy = A00000000000000000000001 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		900000000000000000000001 /* Debug */ = {
@@ -626,6 +704,38 @@
 			};
 			name = Release;
 		};
+		900000000000000000000005 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.junkpile.app.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Junkpile.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Junkpile";
+			};
+			name = Debug;
+		};
+		900000000000000000000006 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.junkpile.app.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Junkpile.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Junkpile";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -643,6 +753,15 @@
 			buildConfigurations = (
 				900000000000000000000001 /* Debug */,
 				900000000000000000000002 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		700000000000000000000003 /* Build configuration list for PBXNativeTarget "JunkpileTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				900000000000000000000005 /* Debug */,
+				900000000000000000000006 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

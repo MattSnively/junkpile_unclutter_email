@@ -74,6 +74,7 @@ jobs:
       # Build for iOS Simulator
       - name: Build for Simulator
         run: |
+          set -o pipefail
           cd ios/Junkpile
           xcodebuild build \
             -project Junkpile.xcodeproj \
@@ -119,27 +120,30 @@ jobs:
       # hardcoded name would have failed this step outright once it was gone.
       - name: Boot Simulator
         run: |
-          UDID=$(xcrun simctl list devices available | grep -oE '\(([0-9A-F-]{36})\)' | tr -d '()' | head -1)
-          if [ -n "$UDID" ]; then
-            xcrun simctl boot "$UDID" || true
-            xcrun simctl list devices | grep Booted || echo "No simulator booted"
-          else
-            echo "No available simulators on this image"
+          # Only iPhones: the first UDID in the full list can be a watch or TV,
+          # which cannot host an iOS test bundle.
+          UDID=$(xcrun simctl list devices available | grep -E '^\s+iPhone' | grep -oE '\(([0-9A-F-]{36})\)' | tr -d '()' | head -1)
+          if [ -z "$UDID" ]; then
+            echo "No available iPhone simulator on this image"
+            exit 1
           fi
+          xcrun simctl boot "$UDID" || true
+          echo "SIM_UDID=$UDID" >> "$GITHUB_ENV"
 
-      # Run tests
+      # Run tests. pipefail matters: without it the step's exit status is
+      # xcpretty's, and failing tests would still report green.
       - name: Run Unit Tests
         run: |
+          set -o pipefail
           cd ios/Junkpile
           xcodebuild test \
             -project Junkpile.xcodeproj \
             -scheme ${{ env.SCHEME }} \
-            -destination "generic/platform=iOS Simulator" \
+            -destination "id=$SIM_UDID" \
             -configuration Debug \
             CODE_SIGNING_ALLOWED=NO \
             -resultBundlePath TestResults \
             | xcpretty --color --report junit --output test-results.xml
-        continue-on-error: true  # Don't fail if no tests exist yet
 
       # Upload test results
       - name: Upload test results
