@@ -8,6 +8,7 @@ const crypto = require('crypto');
 const { google } = require('googleapis');
 const GmailService = require('./gmailService');
 const { verifyAppleToken } = require('./appleAuth');
+const { exchangeAuthorizationCode, revokeAppleToken } = require('./appleRevoke');
 const { generateSessionToken, verifySessionToken } = require('./sessionToken');
 const db = require('./db');
 const userStore = require('./userStore');
@@ -390,6 +391,23 @@ app.post('/api/auth/apple', async (req, res) => {
                 name: fullName || null,
                 authProvider: 'apple'
             });
+        }
+
+        // Keep Apple's refresh token so account deletion can revoke it
+        // (App Review 5.1.1(v)). The iOS app sends a fresh code on every
+        // sign-in, so users who predate this pick one up next time. Never
+        // blocks sign-in: a failure here only costs us the revoke later.
+        if (authorizationCode) {
+            try {
+                const refreshToken = await exchangeAuthorizationCode(authorizationCode);
+                if (refreshToken) {
+                    user = await userStore.updateUser(user.id, {
+                        appleTokens: { refresh_token: refreshToken }
+                    });
+                }
+            } catch (error) {
+                console.error('Apple authorization code exchange failed:', error.message);
+            }
         }
 
         // Step 3: Generate a server session token for subsequent API calls
@@ -778,7 +796,7 @@ async function revokeGoogleToken(token) {
 }
 
 /**
- * Permanently delete the caller's account: revoke the Google grant, remove
+ * Permanently delete the caller's account: revoke the Google and Apple grants, remove
  * their decisions, and remove the user row (Apple users only; Google users
  * have none). Required for App Review — the iOS Settings screen calls this
  * after a double confirmation and then signs out locally.
@@ -792,6 +810,17 @@ app.delete('/api/account', authenticateRequest, async (req, res) => {
             } catch (error) {
                 console.error('Google token revoke failed during account deletion:', error.message);
             }
+        }
+
+        const appleRefreshToken = req.user?.appleTokens?.refresh_token;
+        if (appleRefreshToken) {
+            try {
+                await revokeAppleToken(appleRefreshToken);
+            } catch (error) {
+                console.error('Apple token revoke failed during account deletion:', error.message);
+            }
+        } else if (req.user?.authProvider === 'apple') {
+            console.warn('Account deletion: no stored Apple refresh token to revoke');
         }
 
         const decisionsRemoved = await decisionStore.deleteByUser(req.userKey);

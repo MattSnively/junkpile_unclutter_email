@@ -42,8 +42,9 @@ async function initSchema() {
             created_at         TIMESTAMPTZ NOT NULL DEFAULT now()
         );
 
-        -- Column added after the table shipped; CREATE TABLE IF NOT EXISTS won't add it
+        -- Columns added after the tables shipped; CREATE TABLE IF NOT EXISTS won't add them
         ALTER TABLE decisions ADD COLUMN IF NOT EXISTS sender_address TEXT;
+        ALTER TABLE users ADD COLUMN IF NOT EXISTS apple_tokens JSONB;
 
         CREATE INDEX IF NOT EXISTS decisions_user_key_idx ON decisions (user_key);
     `);
