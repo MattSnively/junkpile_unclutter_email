@@ -179,7 +179,7 @@ We disclaim all warranties, express or implied, including:
 
 ## 12. Limitation of Liability
 
-**TO THE MAXIMUM EXTENT PERMITTED BY LAW, JUNKPILE SHALL NOT BE LIABLE FOR:**
+**TO THE MAXIMUM EXTENT PERMITTED BY LAW, UNPILE SHALL NOT BE LIABLE FOR:**
 
 - **Indirect, incidental, special, consequential, or punitive damages**
 - **Lost profits, lost data, or business interruption**
