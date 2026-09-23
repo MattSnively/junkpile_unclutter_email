@@ -106,6 +106,18 @@ describeWithDb('stores (Postgres)', () => {
             expect((await userStore.findById(viaUpdate.id)).gmailTokens).toEqual(tokens);
         });
 
+        test('apple tokens are stored encrypted and read back', async () => {
+            const user = await userStore.createUser({ appleUserId: 'apple-sub-enc', email: 'ae@example.com', authProvider: 'apple' });
+            expect(user.appleTokens).toBeNull();
+
+            await userStore.updateUser(user.id, { appleTokens: { refresh_token: 'r.apple-secret' } });
+
+            const { rows } = await db.pool.query('SELECT apple_tokens::text AS raw FROM users WHERE id = $1', [user.id]);
+            expect(rows[0].raw).not.toContain('r.apple-secret');
+            expect(JSON.parse(rows[0].raw)).toMatchObject({ v: 1 });
+            expect((await userStore.findById(user.id)).appleTokens).toEqual({ refresh_token: 'r.apple-secret' });
+        });
+
         test('encryptLegacyTokens seals plaintext rows and is a no-op afterwards', async () => {
             const plain = { access_token: 'ya29.legacy', refresh_token: '1//legacy', expiry_date: 5 };
             const { rows: [row] } = await db.pool.query(

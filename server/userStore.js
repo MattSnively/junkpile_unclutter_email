@@ -29,6 +29,9 @@ const { encryptTokens, decryptTokens } = require('./tokenCrypto');
 
 // Record field -> column. Doubles as the allowlist for updateUser, so a typo
 // in a caller fails loudly instead of silently being dropped.
+// Fields holding OAuth tokens, which are encrypted before they reach the DB
+const ENCRYPTED_FIELDS = new Set(['gmailTokens', 'appleTokens']);
+
 const COLUMNS = {
     appleUserId: 'apple_user_id',
     email: 'email',
@@ -36,6 +39,7 @@ const COLUMNS = {
     authProvider: 'auth_provider',
     gmailTokens: 'gmail_tokens',
     gmailEmail: 'gmail_email',
+    appleTokens: 'apple_tokens',
     lastLoginAt: 'last_login_at'
 };
 
@@ -49,6 +53,7 @@ function rowToUser(row) {
         authProvider: row.auth_provider,
         gmailTokens: decryptTokens(row.gmail_tokens),
         gmailEmail: row.gmail_email,
+        appleTokens: decryptTokens(row.apple_tokens),
         createdAt: row.created_at.toISOString(),
         lastLoginAt: row.last_login_at.toISOString()
     };
@@ -135,7 +140,7 @@ async function updateUser(userId, updates) {
         if (!column) {
             throw new Error(`updateUser: unknown field "${field}"`);
         }
-        values.push(field === 'gmailTokens' ? encryptTokens(value) : value);
+        values.push(ENCRYPTED_FIELDS.has(field) ? encryptTokens(value) : value);
         assignments.push(`${column} = $${values.length}`);
     }
 
