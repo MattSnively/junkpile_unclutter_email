@@ -515,6 +515,19 @@ struct SessionCompleteView: View {
                         .padding(.horizontal, 24)
                 }
 
+                // Per-email outcomes once anything has been sent, so the
+                // user can see which senders need a manual follow-up
+                if !sentUnsubscribes.isEmpty {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Results")
+                            .font(.headline)
+                            .foregroundColor(.primary)
+                            .accessibilityAddTraits(.isHeader)
+                        UnsubscribeResultsList(decisions: sentUnsubscribes)
+                    }
+                    .padding(.horizontal, 24)
+                }
+
                 // Streak motivation — only shown when user has an active streak
                 if gamificationViewModel.currentStreak > 0 {
                     Text("You're on a \(gamificationViewModel.currentStreak)-day streak! Come back tomorrow to keep it going.")
@@ -652,6 +665,13 @@ struct SessionCompleteView: View {
                 .stroke(Theme.cardBorder, lineWidth: 2)
         )
         .cornerRadius(16)
+    }
+
+    /// This session's unsubscribes that have left the review queue
+    private var sentUnsubscribes: [Decision] {
+        (viewModel.currentSession?.decisions ?? []).filter {
+            $0.action == .unsubscribe && $0.unsubscribeOutcome != .queued
+        }
     }
 
     /// Human-readable pieces of the unsubscribe outcome breakdown, e.g.
