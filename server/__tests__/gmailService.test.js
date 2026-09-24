@@ -307,4 +307,36 @@ describe('GmailService', () => {
             expect(service.hasSendScope).toBe(true);
         });
     });
+
+    describe('canUnsubscribe', () => {
+        const SEND_SCOPE = 'https://www.googleapis.com/auth/gmail.send';
+        const mailtoOnly = { primaryUrl: null, mailtoUrl: 'mailto:unsub@example.com' };
+
+        it('accepts any email with an HTTP unsubscribe URL', () => {
+            expect(service.canUnsubscribe({ primaryUrl: 'https://example.com/u', mailtoUrl: null })).toBe(true);
+        });
+
+        // Showing these without send access would guarantee a failed unsubscribe
+        it('skips mailto-only senders without gmail.send', () => {
+            expect(service.canUnsubscribe(mailtoOnly)).toBe(false);
+        });
+
+        it('accepts mailto-only senders with gmail.send', () => {
+            service.oauth2Client.credentials = { scope: SEND_SCOPE };
+            expect(service.canUnsubscribe(mailtoOnly)).toBe(true);
+        });
+
+        it('rejects emails with no unsubscribe data', () => {
+            expect(service.canUnsubscribe(null)).toBe(false);
+        });
+    });
+
+    describe('sendEmail', () => {
+        it('refuses header values containing line breaks', async () => {
+            service.gmail = { users: { messages: { send: jest.fn() } } };
+            await expect(service.sendEmail('a@example.com\r\nBcc: x@evil.test', 'Hi', '')).rejects.toThrow('line break');
+            await expect(service.sendEmail('a@example.com', 'Hi\nBcc: x@evil.test', '')).rejects.toThrow('line break');
+            expect(service.gmail.users.messages.send).not.toHaveBeenCalled();
+        });
+    });
 });

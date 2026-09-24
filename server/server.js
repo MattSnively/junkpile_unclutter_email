@@ -7,7 +7,7 @@ const path = require('path');
 const crypto = require('crypto');
 const { google } = require('googleapis');
 const GmailService = require('./gmailService');
-const { createOAuthClient, oauthClientFor } = require('./oauthClient');
+const { createOAuthClient, oauthClientFor, withGrantedScope } = require('./oauthClient');
 const { verifyAppleToken } = require('./appleAuth');
 const { exchangeAuthorizationCode, revokeAppleToken } = require('./appleRevoke');
 const { generateSessionToken, verifySessionToken } = require('./sessionToken');
@@ -486,7 +486,9 @@ app.post('/api/auth/connect-gmail', async (req, res) => {
             gmailTokens: {
                 access_token: tokens.access_token,
                 refresh_token: tokens.refresh_token,
-                expiry_date: expiryDate
+                expiry_date: expiryDate,
+                // What the user actually granted; gmail.send can be declined
+                scope: tokens.scope
             },
             gmailEmail: gmailEmail
         });
@@ -631,7 +633,7 @@ app.get('/auth/google/callback', async (req, res) => {
 app.get('/api/emails', authenticateRequest, requireGmail, async (req, res) => {
     try {
         // Use tokens from middleware (works for both web and mobile)
-        const gmailService = new GmailService(oauthClientFor(req.authTokens));
+        const gmailService = new GmailService(oauthClientFor(await withGrantedScope(req.authTokens)));
 
         // Skip anything this user already decided on, otherwise the same
         // senders come back every session until newer mail displaces them.
@@ -674,7 +676,7 @@ app.post('/api/decision', authenticateRequest, async (req, res) => {
         // this sender entirely, not just this one message.
         let senderAddress = null;
         if (req.authTokens) {
-            const gmailService = new GmailService(oauthClientFor(req.authTokens));
+            const gmailService = new GmailService(oauthClientFor(await withGrantedScope(req.authTokens)));
 
             // Gmail failures here are the caller's token or quota, not our bug,
             // so classify them instead of letting them fall through to a 500.

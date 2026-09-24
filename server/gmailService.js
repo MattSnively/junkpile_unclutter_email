@@ -18,15 +18,13 @@ class GmailService {
 
     /**
      * Checks if the current OAuth credentials include gmail.send scope.
-     * Required for mailto-based unsubscribe. Currently returns false
-     * because gmail.send is not yet requested (deferred to a follow-up release).
+     * Required for mailto-based unsubscribe. The app requests the scope, but
+     * users can decline it on the consent screen, and credentials only carry
+     * `scope` when the caller resolved it (withGrantedScope in oauthClient.js).
      *
      * @returns {boolean} True if send capability is available
      */
     get hasSendScope() {
-        // gmail.send scope is deferred — will be enabled in a future release
-        // when it's added to the OAuth scope array in server.js.
-        // At that point, this getter should check the actual token scopes.
         try {
             const credentials = this.oauth2Client.credentials;
             if (credentials && credentials.scope) {
@@ -36,6 +34,20 @@ class GmailService {
             // Scope info not available — assume no send capability
         }
         return false;
+    }
+
+    /**
+     * Whether we have a way to unsubscribe from this email. A mailto-only
+     * sender counts only when we can send mail; otherwise showing the card
+     * would guarantee a failed unsubscribe.
+     *
+     * @param {object|null} unsubscribeData - From extractUnsubscribeData()
+     * @returns {boolean}
+     */
+    canUnsubscribe(unsubscribeData) {
+        if (!unsubscribeData) return false;
+        if (unsubscribeData.primaryUrl) return true;
+        return Boolean(unsubscribeData.mailtoUrl) && this.hasSendScope;
     }
 
     /**
@@ -80,7 +92,7 @@ class GmailService {
                 );
 
                 for (const email of emails) {
-                    if (email && email.unsubscribeUrl) {
+                    if (email && this.canUnsubscribe(email.unsubscribeData)) {
                         const sender = this.extractSenderAddress(email.rawHeaders.from);
                         if (!seenSenders.has(sender)) {
                             seenSenders.add(sender);
@@ -210,8 +222,9 @@ class GmailService {
                 // Gmail API's pre-sanitized snippet — plain text with no HTML/CSS.
                 // Used as the primary preview text on iOS to avoid CSS leakage.
                 snippet: message.snippet || '',
-                // primaryUrl maintains backward compatibility with iOS app
-                unsubscribeUrl: unsubscribeData.primaryUrl,
+                // The iOS card treats a missing URL as "no unsubscribe option",
+                // so mailto-only senders surface their mailto link here.
+                unsubscribeUrl: unsubscribeData.primaryUrl || unsubscribeData.mailtoUrl,
                 // Full unsubscribe data for server-side execution
                 unsubscribeData: unsubscribeData,
                 rawHeaders: {
@@ -441,6 +454,12 @@ class GmailService {
      * @returns {Promise<void>}
      */
     async sendEmail(to, subject, body) {
+        // Header values come from sender-controlled mailto URLs; parseMailtoUrl
+        // already refuses line breaks, and this keeps any other caller honest.
+        if (/[\r\n]/.test(`${to}${subject || ''}`)) {
+            throw new Error('Refusing to send: line break in a header value');
+        }
+
         // Construct a minimal RFC 2822 email message
         const emailLines = [
             `To: ${to}`,
