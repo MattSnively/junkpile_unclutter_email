@@ -137,8 +137,6 @@ When we update this policy, we will change the "Last Updated" date above. For ma
 ## Contact Us
 
 **Email:** support@junkpile.app
-**Website:** [WEBSITE — to be added]
-**Mail:** [MAILING ADDRESS — if required by jurisdiction]
 
 ---
 
