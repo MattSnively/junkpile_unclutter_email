@@ -83,7 +83,7 @@ Either way, the sender learns that your address asked to unsubscribe. That is ho
 
 ## Data Storage and Security
 
-- **Hosting:** Our servers and database run on Railway ([REGION — to be confirmed]).
+- **Hosting:** Our servers and database run on Railway in the United States (US West).
 - **In transit:** All traffic between the App and our servers uses HTTPS/TLS.
 - **At rest:** OAuth tokens are encrypted before they reach the database.
 - **Authentication:** Sign in with Apple and Google OAuth 2.0. Unpile never sees or stores your passwords.
@@ -128,7 +128,7 @@ We will never sell your personal information or email data. We disclose informat
 
 ## International Data Transfers
 
-Our servers are located in [REGION — to be confirmed]. If you use Unpile from elsewhere, your data is transferred to and processed there. We comply with applicable data protection laws, including GDPR (for users in the EU) and CCPA (for California residents).
+Our servers are located in the United States. If you use Unpile from elsewhere, your data is transferred to and processed there. We comply with applicable data protection laws, including GDPR (for users in the EU) and CCPA (for California residents).
 
 ## Changes to This Privacy Policy
 
