@@ -61,7 +61,6 @@
 		100000000000000000000130 /* ShimmerModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000130 /* ShimmerModifier.swift */; };
 		100000000000000000000131 /* SkeletonCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000131 /* SkeletonCardView.swift */; };
 		100000000000000000000132 /* SkeletonLoadingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000132 /* SkeletonLoadingView.swift */; };
-		100000000000000000000133 /* UndoButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000133 /* UndoButton.swift */; };
 		/* Assets */
 		100000000000000000000200 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000200 /* Assets.xcassets */; };
 		/* Tests */
@@ -69,6 +68,7 @@
 		100000000000000000000501 /* UserFacingErrorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000501 /* UserFacingErrorTests.swift */; };
 		100000000000000000000502 /* UnsubscribeOutcomeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000502 /* UnsubscribeOutcomeTests.swift */; };
 		100000000000000000000503 /* AchievementIconTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000503 /* AchievementIconTests.swift */; };
+		100000000000000000000504 /* SwipeViewModelQueueTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000504 /* SwipeViewModelQueueTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -90,6 +90,7 @@
 		200000000000000000000501 /* UserFacingErrorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserFacingErrorTests.swift; sourceTree = "<group>"; };
 		200000000000000000000502 /* UnsubscribeOutcomeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnsubscribeOutcomeTests.swift; sourceTree = "<group>"; };
 		200000000000000000000503 /* AchievementIconTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AchievementIconTests.swift; sourceTree = "<group>"; };
+		200000000000000000000504 /* SwipeViewModelQueueTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwipeViewModelQueueTests.swift; sourceTree = "<group>"; };
 		/* Models */
 		200000000000000000000001 /* PlayerProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerProfile.swift; sourceTree = "<group>"; };
 		200000000000000000000002 /* Session.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Session.swift; sourceTree = "<group>"; };
@@ -143,7 +144,6 @@
 		200000000000000000000130 /* ShimmerModifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShimmerModifier.swift; sourceTree = "<group>"; };
 		200000000000000000000131 /* SkeletonCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkeletonCardView.swift; sourceTree = "<group>"; };
 		200000000000000000000132 /* SkeletonLoadingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkeletonLoadingView.swift; sourceTree = "<group>"; };
-		200000000000000000000133 /* UndoButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UndoButton.swift; sourceTree = "<group>"; };
 		/* Entitlements */
 		200000000000000000000400 /* Junkpile.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Junkpile.entitlements; sourceTree = "<group>"; };
 		/* Assets */
@@ -186,6 +186,7 @@
 				200000000000000000000501 /* UserFacingErrorTests.swift */,
 				200000000000000000000502 /* UnsubscribeOutcomeTests.swift */,
 				200000000000000000000503 /* AchievementIconTests.swift */,
+				200000000000000000000504 /* SwipeViewModelQueueTests.swift */,
 			);
 			path = JunkpileTests;
 			sourceTree = "<group>";
@@ -364,7 +365,6 @@
 				200000000000000000000130 /* ShimmerModifier.swift */,
 				200000000000000000000131 /* SkeletonCardView.swift */,
 				200000000000000000000132 /* SkeletonLoadingView.swift */,
-				200000000000000000000133 /* UndoButton.swift */,
 			);
 			path = Components;
 			sourceTree = "<group>";
@@ -499,7 +499,6 @@
 				100000000000000000000130 /* ShimmerModifier.swift in Sources */,
 				100000000000000000000131 /* SkeletonCardView.swift in Sources */,
 				100000000000000000000132 /* SkeletonLoadingView.swift in Sources */,
-				100000000000000000000133 /* UndoButton.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -511,6 +510,7 @@
 				100000000000000000000501 /* UserFacingErrorTests.swift in Sources */,
 				100000000000000000000502 /* UnsubscribeOutcomeTests.swift in Sources */,
 				100000000000000000000503 /* AchievementIconTests.swift in Sources */,
+				100000000000000000000504 /* SwipeViewModelQueueTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -25,6 +25,9 @@ struct SwipeContainerView: View {
 
     @StateObject private var viewModel = SwipeViewModel()
 
+    /// Whether the review sheet for leftover queued unsubscribes is open
+    @State private var isReviewingLeftovers = false
+
     // MARK: - Body
 
     var body: some View {
@@ -33,6 +36,13 @@ struct SwipeContainerView: View {
                 switch viewModel.sessionState {
                 case .notStarted:
                     SessionStartView(onStart: startSession)
+                        // Unsubscribes left unconfirmed when the app was
+                        // closed mid-session. Never sent without a review.
+                        .safeAreaInset(edge: .top) {
+                            if !viewModel.queuedUnsubscribes.isEmpty {
+                                leftoverQueueBanner
+                            }
+                        }
 
                 case .loading:
                     SkeletonLoadingView()
@@ -51,32 +61,64 @@ struct SwipeContainerView: View {
                     ErrorView(error: userError, onAction: handleRecovery)
                 }
             }
-            // Undo button overlay — floats above all session states so it
-            // persists even when the session transitions to .completed after
-            // the last card is swiped. Appears with animation when a pending
-            // decision exists, disappears when the undo window expires.
-            .overlay(alignment: .bottom) {
-                if viewModel.pendingDecision != nil {
-                    UndoButton(
-                        timeRemaining: viewModel.undoTimeRemaining,
-                        onUndo: { viewModel.undoLastDecision() }
-                    )
-                    .padding(.bottom, 32)
-                }
-            }
-            .animation(.easeInOut(duration: 0.25), value: viewModel.pendingDecision != nil)
             .navigationTitle("Swipe")
             .navigationBarTitleDisplayMode(.inline)
             .onAppear {
                 viewModel.configure(with: modelContext)
             }
-            // Commit any pending decision when the user navigates away
-            // (e.g., switching tabs). Prevents stale undo state and ensures
-            // the API call fires even if the timer hasn't expired.
-            .onDisappear {
-                viewModel.commitIfPending()
+            .sheet(isPresented: $isReviewingLeftovers) {
+                NavigationStack {
+                    ScrollView {
+                        QueuedUnsubscribeReview(viewModel: viewModel)
+                            .padding(24)
+                    }
+                    .navigationTitle("Waiting to Send")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .confirmationAction) {
+                            Button("Close") { isReviewingLeftovers = false }
+                        }
+                    }
+                }
+                // Close once everything has been sent or withdrawn
+                .onChange(of: viewModel.queuedUnsubscribes.isEmpty) { _, isEmpty in
+                    if isEmpty { isReviewingLeftovers = false }
+                }
             }
         }
+    }
+
+    private var leftoverQueueBanner: some View {
+        Button {
+            isReviewingLeftovers = true
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: "tray.full.fill")
+                    .foregroundColor(.orange)
+                    .accessibilityHidden(true)
+                Text("You have \(viewModel.queuedUnsubscribes.count.localized) unsubscribes waiting to send")
+                    .font(.subheadline)
+                    .foregroundColor(.primary)
+                    .multilineTextAlignment(.leading)
+                Spacer(minLength: 0)
+                Text("Review")
+                    .font(.subheadline.bold())
+                    .foregroundColor(.accentColor)
+            }
+            .padding(16)
+            .background(Theme.cardBackground)
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(Theme.cardBorder, lineWidth: 1)
+            )
+            .cornerRadius(12)
+            .padding(.horizontal, 16)
+            .padding(.top, 8)
+        }
+        .buttonStyle(.plain)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(viewModel.queuedUnsubscribes.count.localized) unsubscribes waiting to send")
+        .accessibilityHint("Review and send them, or keep those senders")
     }
 
     // MARK: - Actions
@@ -416,109 +458,143 @@ struct SessionCompleteView: View {
     /// Callback to start a new swipe session
     let onNewSession: () -> Void
 
+    /// Shown when New Session is tapped with unsubscribes still unconfirmed
+    @State private var isConfirmingNewSession = false
+
     var body: some View {
-        VStack(spacing: 32) {
-            Spacer()
+        // Scrolls because the review list can hold a whole batch of senders
+        ScrollView {
+            VStack(spacing: 32) {
+                // Success icon
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.system(size: 80))
+                    .foregroundColor(.green)
 
-            // Success icon
-            Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: 80))
-                .foregroundColor(.green)
+                // Title
+                Text("Session Complete!")
+                    .font(.title.bold())
+                    .foregroundColor(.primary)
 
-            // Title
-            Text("Session Complete!")
-                .font(.title.bold())
-                .foregroundColor(.primary)
+                // Stats summary
+                statsCard
 
-            // Stats summary
-            statsCard
+                // Points earned — combine each value+label pair for VoiceOver
+                if let session = viewModel.currentSession {
+                    HStack(spacing: 24) {
+                        VStack {
+                            Text("+\(session.pointsEarned.localized)")
+                                .font(.title2.bold())
+                                .foregroundColor(.primary)
+                            Text("Points")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        .accessibilityElement(children: .combine)
+                        .accessibilityLabel("Plus \(session.pointsEarned.localized) points")
 
-            // Points earned — combine each value+label pair for VoiceOver
-            if let session = viewModel.currentSession {
-                HStack(spacing: 24) {
-                    VStack {
-                        Text("+\(session.pointsEarned.localized)")
-                            .font(.title2.bold())
-                            .foregroundColor(.primary)
-                        Text("Points")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+                        VStack {
+                            Text("+\(session.xpEarned.localized)")
+                                .font(.title2.bold())
+                                .foregroundColor(.primary)
+                            Text("XP")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        .accessibilityElement(children: .combine)
+                        .accessibilityLabel("Plus \(session.xpEarned.localized) XP")
                     }
-                    .accessibilityElement(children: .combine)
-                    .accessibilityLabel("Plus \(session.pointsEarned.localized) points")
-
-                    VStack {
-                        Text("+\(session.xpEarned.localized)")
-                            .font(.title2.bold())
-                            .foregroundColor(.primary)
-                        Text("XP")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                    .accessibilityElement(children: .combine)
-                    .accessibilityLabel("Plus \(session.xpEarned.localized) XP")
-                }
-                .padding(.vertical, 16)
-                .padding(.horizontal, 32)
-                .background(Theme.subtleFill)
-                .cornerRadius(12)
-            }
-
-            // Streak motivation — only shown when user has an active streak
-            if gamificationViewModel.currentStreak > 0 {
-                Text("You're on a \(gamificationViewModel.currentStreak)-day streak! Come back tomorrow to keep it going.")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-                    .multilineTextAlignment(.center)
+                    .padding(.vertical, 16)
                     .padding(.horizontal, 32)
-            }
-
-            Spacer()
-
-            // 3-tier action buttons: primary (filled), secondary (outlined), tertiary (text)
-            VStack(spacing: 12) {
-                // Primary — start another session
-                Button(action: onNewSession) {
-                    Text("New Session")
-                        .font(.headline)
-                        .foregroundColor(Theme.solidFillForeground)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 56)
-                        .background(Theme.solidFill)
-                        .cornerRadius(12)
+                    .background(Theme.subtleFill)
+                    .cornerRadius(12)
                 }
-                .accessibilityHint("Start swiping through more emails")
 
-                // Secondary — view detailed stats
-                Button {
-                    selectedTab = .stats
-                } label: {
-                    Text("View Stats")
-                        .font(.headline)
-                        .foregroundColor(.primary)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 56)
-                        .background(Theme.cardBackground)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 12)
-                                .stroke(Theme.cardBorder, lineWidth: 2)
-                        )
-                        .cornerRadius(12)
+                // Nothing is unsubscribed until the user confirms here
+                if !viewModel.queuedUnsubscribes.isEmpty {
+                    QueuedUnsubscribeReview(viewModel: viewModel)
+                        .padding(.horizontal, 24)
                 }
-                .accessibilityHint("Switch to the Stats tab to see your progress")
 
-                // Tertiary — go home
-                Button {
-                    selectedTab = .home
-                } label: {
-                    Text("Done")
+                // Streak motivation — only shown when user has an active streak
+                if gamificationViewModel.currentStreak > 0 {
+                    Text("You're on a \(gamificationViewModel.currentStreak)-day streak! Come back tomorrow to keep it going.")
                         .font(.subheadline)
                         .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 32)
                 }
-                .accessibilityHint("Return to the Home tab")
+
+                // 3-tier action buttons: primary (filled), secondary (outlined), tertiary (text)
+                VStack(spacing: 12) {
+                    // Primary — start another session
+                    Button {
+                        if viewModel.queuedUnsubscribes.isEmpty {
+                            onNewSession()
+                        } else {
+                            isConfirmingNewSession = true
+                        }
+                    } label: {
+                        Text("New Session")
+                            .font(.headline)
+                            .foregroundColor(Theme.solidFillForeground)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 56)
+                            .background(Theme.solidFill)
+                            .cornerRadius(12)
+                    }
+                    .accessibilityHint("Start swiping through more emails")
+
+                    // Secondary — view detailed stats
+                    Button {
+                        selectedTab = .stats
+                    } label: {
+                        Text("View Stats")
+                            .font(.headline)
+                            .foregroundColor(.primary)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 56)
+                            .background(Theme.cardBackground)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .stroke(Theme.cardBorder, lineWidth: 2)
+                            )
+                            .cornerRadius(12)
+                    }
+                    .accessibilityHint("Switch to the Stats tab to see your progress")
+
+                    // Tertiary — go home
+                    Button {
+                        selectedTab = .home
+                    } label: {
+                        Text("Done")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                    }
+                    .accessibilityHint("Return to the Home tab")
+                }
+                .padding(.horizontal, 24)
+                .padding(.bottom, 40)
             }
-            .padding(.horizontal, 24)
-            .padding(.bottom, 40)
+            .padding(.top, 32)
+        }
+        .confirmationDialog(
+            "You have \(viewModel.checkedQueuedCount.localized) unsubscribes that haven't been sent.",
+            isPresented: $isConfirmingNewSession,
+            titleVisibility: .visible
+        ) {
+            Button("Send and Start New Session") {
+                Task {
+                    await viewModel.sendQueuedUnsubscribes()
+                    onNewSession()
+                }
+            }
+            Button("Discard and Start New Session", role: .destructive) {
+                viewModel.discardQueuedUnsubscribes()
+                onNewSession()
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Discarding keeps those senders; they may show up in a future session.")
         }
     }
 
@@ -580,7 +656,7 @@ struct SessionCompleteView: View {
 
     /// Human-readable pieces of the unsubscribe outcome breakdown, e.g.
     /// ["6 confirmed", "2 attempted"]. Empty when the session had no
-    /// unsubscribes. Pending = requests whose API calls have not resolved.
+    /// unsubscribes. "Not sent" covers everything still waiting on the review.
     private var outcomeBreakdownParts: [String] {
         guard viewModel.unsubscribeCount > 0 else { return [] }
 
@@ -592,11 +668,144 @@ struct SessionCompleteView: View {
             }
         }
 
-        let pending = max(0, viewModel.unsubscribeCount - counts.values.reduce(0, +))
-        if pending > 0 {
-            parts.append("\(pending.localized) pending")
+        let notSent = max(0, viewModel.unsubscribeCount - counts.values.reduce(0, +))
+        if notSent > 0 {
+            parts.append("\(notSent.localized) not sent")
         }
         return parts
+    }
+}
+
+// MARK: - Queued Unsubscribe Review
+
+/// Checklist of queued unsubscribes with the button that sends them. Shown on
+/// the session-end screen, and in a sheet for a queue left over from a
+/// session the app was closed during.
+struct QueuedUnsubscribeReview: View {
+
+    @ObservedObject var viewModel: SwipeViewModel
+
+    @State private var isConfirmingDiscard = false
+
+    private var isSending: Bool { viewModel.sendProgress != nil }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Review Unsubscribes")
+                .font(.headline)
+                .foregroundColor(.primary)
+                .accessibilityAddTraits(.isHeader)
+
+            Text("Uncheck any sender you'd rather keep. Nothing is sent until you confirm.")
+                .font(.caption)
+                .foregroundColor(.secondary)
+
+            VStack(spacing: 0) {
+                ForEach(viewModel.queuedUnsubscribes, id: \.id) { decision in
+                    row(for: decision)
+                    if decision.id != viewModel.queuedUnsubscribes.last?.id {
+                        Divider()
+                            .padding(.leading, 48)
+                            .accessibilityHidden(true)
+                    }
+                }
+            }
+            .background(Theme.cardBackground)
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(Theme.cardBorder, lineWidth: 1)
+            )
+            .cornerRadius(12)
+
+            if viewModel.unsentAfterLastSend > 0 && !isSending {
+                Text("\(viewModel.unsentAfterLastSend.localized) couldn't be sent. Check your connection and try again.")
+                    .font(.caption)
+                    .foregroundColor(.orange)
+            }
+
+            if let progress = viewModel.sendProgress {
+                ProgressView(value: Double(progress.done), total: Double(max(progress.total, 1))) {
+                    Text("Unsubscribing \(progress.done.localized) of \(progress.total.localized)…")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                }
+                .frame(height: 56)
+            } else {
+                Button {
+                    Task { await viewModel.sendQueuedUnsubscribes() }
+                } label: {
+                    Text(sendButtonTitle)
+                        .font(.headline)
+                        .foregroundColor(Theme.solidFillForeground)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 56)
+                        .background(Theme.solidFill)
+                        .cornerRadius(12)
+                }
+                .accessibilityHint(viewModel.checkedQueuedCount > 0
+                    ? "Sends unsubscribe requests for the checked senders"
+                    : "Keeps every sender in this list")
+
+                Button("Discard All") {
+                    isConfirmingDiscard = true
+                }
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+                .frame(maxWidth: .infinity)
+                .accessibilityHint("Keeps every sender without sending anything")
+            }
+        }
+        .confirmationDialog(
+            "Keep all \(viewModel.queuedUnsubscribes.count.localized) senders?",
+            isPresented: $isConfirmingDiscard,
+            titleVisibility: .visible
+        ) {
+            Button("Discard All", role: .destructive) {
+                viewModel.discardQueuedUnsubscribes()
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Nothing will be sent, and the points for these swipes are removed.")
+        }
+    }
+
+    private var sendButtonTitle: String {
+        let count = viewModel.checkedQueuedCount
+        return count > 0 ? "Unsubscribe (\(count.localized))" : "Keep All"
+    }
+
+    private func row(for decision: Decision) -> some View {
+        let isChecked = !viewModel.uncheckedDecisionIds.contains(decision.id)
+
+        return Button {
+            viewModel.toggleQueued(decision)
+        } label: {
+            HStack(alignment: .top, spacing: 12) {
+                Image(systemName: isChecked ? "checkmark.circle.fill" : "circle")
+                    .font(.title3)
+                    .foregroundColor(isChecked ? .red : .secondary)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(decision.emailSender)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundColor(.primary)
+                        .lineLimit(1)
+                    Text(decision.emailSubject)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .lineLimit(2)
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(12)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(isSending)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(decision.emailSender), \(decision.emailSubject)")
+        .accessibilityValue(isChecked ? "Will unsubscribe" : "Will keep")
+        .accessibilityHint(isChecked ? "Double tap to keep this sender instead" : "Double tap to unsubscribe from this sender")
+        .accessibilityAddTraits(.isButton)
     }
 }
 

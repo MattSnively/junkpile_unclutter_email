@@ -86,7 +86,7 @@ You may NOT:
 ### 7.1 How Unsubscribing Works
 When you swipe left on an email:
 - Unpile sends an unsubscribe request using the List-Unsubscribe header or link provided by the email sender
-- The request is sent immediately (or after a 5-second undo timer, if implemented)
+- The request is sent when you confirm your unsubscribes at the end of the session, not when you swipe
 - The email sender is responsible for honoring the unsubscribe request
 
 ### 7.2 No Guarantee of Effectiveness

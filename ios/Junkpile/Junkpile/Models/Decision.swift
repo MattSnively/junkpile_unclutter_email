@@ -14,7 +14,11 @@ enum DecisionAction: String, Codable {
 /// server-side, as opposed to what the user asked for. Points/XP are awarded on
 /// the swipe regardless of outcome — a blocked request is not the user's fault.
 enum UnsubscribeOutcome: String, Codable, CaseIterable {
-    /// The API call has not completed yet (or never reached the server)
+    /// Swiped but not yet confirmed on the session-end review, so nothing has
+    /// been sent. Also where a send returns to if it never reached the server.
+    case queued
+
+    /// Sent; the API call has not completed yet
     case pending
 
     /// An unsubscribe endpoint accepted the request (2xx response)
@@ -29,6 +33,7 @@ enum UnsubscribeOutcome: String, Codable, CaseIterable {
     /// Short label for stat rows and badges
     var displayName: String {
         switch self {
+        case .queued: return "Not sent"
         case .pending: return "Pending"
         case .confirmed: return "Confirmed"
         case .attempted: return "Attempted"
@@ -142,10 +147,10 @@ final class Decision {
         self.timestamp = Date()
         self.unsubscribeUrl = unsubscribeUrl
 
-        // Unsubscribe requests start pending until the server reports what
-        // actually happened; keep decisions have no outcome to track
+        // Unsubscribes wait in the queue until the user confirms them at the
+        // end of the session; keep decisions have no outcome to track
         self.unsubscribeOutcomeRawValue = action == .unsubscribe
-            ? UnsubscribeOutcome.pending.rawValue
+            ? UnsubscribeOutcome.queued.rawValue
             : nil
         self.unsubscribeMethod = nil
 
