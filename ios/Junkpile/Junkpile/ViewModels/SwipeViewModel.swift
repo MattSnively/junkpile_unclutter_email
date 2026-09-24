@@ -1,6 +1,13 @@
 import Foundation
 import SwiftData
-import UIKit  // Required for UINotificationFeedbackGenerator (haptic feedback)
+
+/// The per-decision API call the swipe flow makes. A protocol so tests can
+/// stand in for the network.
+protocol DecisionSyncing {
+    func recordDecision(emailId: String, action: DecisionAction) async throws -> DecisionAPIResponse
+}
+
+extension APIService: DecisionSyncing {}
 
 /// SwipeViewModel manages the email fetching, swipe decisions, and session tracking.
 /// Coordinates between the UI, API service, and local persistence.
@@ -33,29 +40,25 @@ final class SwipeViewModel: ObservableObject {
     /// Number of keeps in current session
     @Published var keepCount: Int = 0
 
-    /// Server-reported outcomes for this session's unsubscribes, tallied as each
-    /// deferred API call resolves. Drives the session-complete breakdown; the gap
-    /// between unsubscribeCount and this tally is still pending.
+    /// Server-reported outcomes for the unsubscribes sent from the review,
+    /// tallied as each call resolves. Drives the session-complete breakdown.
     @Published var sessionOutcomeCounts: [UnsubscribeOutcome: Int] = [:]
 
-    /// The most recent decision, held for the undo window.
-    /// While non-nil, the user can tap Undo to roll back this decision.
-    /// The API call is deferred until the undo window expires.
-    @Published var pendingDecision: PendingDecision?
+    /// Unsubscribes waiting for the user to confirm them, oldest first.
+    /// Includes any left over from a session the app was closed during —
+    /// nothing is sent until the user confirms on the review.
+    @Published private(set) var queuedUnsubscribes: [Decision] = []
 
-    /// Countdown progress for the undo timer (1.0 → 0.0 over undoDuration seconds).
-    /// Drives the circular countdown ring on the UndoButton component.
-    @Published var undoTimeRemaining: Double = 0
+    /// Queued decisions the user unchecked on the review. Confirming
+    /// withdraws these instead of sending them.
+    @Published var uncheckedDecisionIds: Set<UUID> = []
 
-    // MARK: - Undo Types
+    /// Progress of an in-flight confirm, or nil when nothing is being sent
+    @Published private(set) var sendProgress: (done: Int, total: Int)?
 
-    /// Holds all the context needed to either commit or roll back a swipe decision.
-    /// Stored as the single "undo slot" — only the most recent swipe is undoable.
-    struct PendingDecision {
-        let email: Email
-        let decision: Decision
-        let action: DecisionAction
-    }
+    /// How many unsubscribes from the last confirm never reached the server.
+    /// They stay queued so the user can try again.
+    @Published private(set) var unsentAfterLastSend: Int = 0
 
     // MARK: - Session State
 
@@ -79,21 +82,28 @@ final class SwipeViewModel: ObservableObject {
     /// Gamification service for awarding points/XP
     private var gamificationService: GamificationService?
 
-    /// Timer that counts down the undo window and commits the decision when it expires
-    private var undoTimer: Timer?
+    /// Sends each decision to the backend
+    private let decisionSync: DecisionSyncing
 
-    /// Duration in seconds of the undo window
-    private let undoDuration: Double = 4.0
+    /// Confirmed unsubscribes sent at once. Each one makes the server fetch the
+    /// message and run the unsubscribe cascade, so a small cap keeps a
+    /// 20-email batch quick without tripping Gmail's rate limits.
+    private let maxConcurrentSends = 4
 
-    /// Interval for updating the countdown ring animation (20fps)
-    private let undoTimerInterval: Double = 0.05
+    /// Queued unsubscribes counted in unsubscribeCount, so withdrawing one
+    /// only lowers that count if it was swiped in this session rather than
+    /// left over from an earlier one
+    private var decisionIdsThisSession: Set<UUID> = []
 
     // MARK: - Initialization
 
     /// Creates a new SwipeViewModel.
-    /// - Parameter apiService: Optional API service for dependency injection
-    init(apiService: APIService = .shared) {
+    /// - Parameters:
+    ///   - apiService: Optional API service for dependency injection
+    ///   - decisionSync: Where decisions are sent; defaults to apiService
+    init(apiService: APIService = .shared, decisionSync: DecisionSyncing? = nil) {
         self.apiService = apiService
+        self.decisionSync = decisionSync ?? apiService
     }
 
     /// Configures the view model with a model context for persistence.
@@ -101,6 +111,7 @@ final class SwipeViewModel: ObservableObject {
     func configure(with context: ModelContext) {
         self.modelContext = context
         self.gamificationService = GamificationService(modelContext: context)
+        loadQueuedUnsubscribes()
     }
 
     // MARK: - Public Methods
@@ -115,6 +126,7 @@ final class SwipeViewModel: ObservableObject {
         currentIndex = 0
         unsubscribeCount = 0
         keepCount = 0
+        decisionIdsThisSession = []
 
         do {
             // Fetch emails from API
@@ -146,21 +158,13 @@ final class SwipeViewModel: ObservableObject {
     }
 
     /// Records a swipe decision for an email.
-    /// The decision is persisted immediately to SwiftData (crash safety),
-    /// but the API call is deferred behind a 4-second undo window.
-    /// If the user taps Undo, the local persistence is rolled back
-    /// and the API call never fires.
+    /// The decision is persisted to SwiftData immediately. A keep is sent to
+    /// the server right away; an unsubscribe joins the queue and is only sent
+    /// once the user confirms it on the session-end review.
     /// - Parameters:
     ///   - email: The email that was swiped
     ///   - action: The action taken (unsubscribe or keep)
     func recordDecision(email: Email, action: DecisionAction) {
-        // If there's already a pending decision from a previous swipe,
-        // commit it now (fire its API call) before recording the new one.
-        // Only one undo slot at a time.
-        if pendingDecision != nil {
-            commitPendingDecision()
-        }
-
         // Create decision record
         let decision = Decision(
             emailId: email.id,
@@ -178,8 +182,8 @@ final class SwipeViewModel: ObservableObject {
             keepCount += 1
         }
 
-        // Persist to SwiftData immediately (crash safety — if app is killed
-        // during the undo window, the decision is not lost)
+        // Persist to SwiftData immediately so a queued unsubscribe survives
+        // the app being closed before the user confirms it
         if let context = modelContext {
             context.insert(decision)
 
@@ -197,11 +201,22 @@ final class SwipeViewModel: ObservableObject {
             try? context.save()
         }
 
-        // Store as pending instead of firing the API call immediately.
-        // The API call will fire when the undo window expires or when
-        // the user swipes the next card (whichever comes first).
-        pendingDecision = PendingDecision(email: email, decision: decision, action: action)
-        startUndoTimer()
+        switch action {
+        case .keep:
+            // A keep changes nothing in the user's mailbox (the server only
+            // stops showing that sender), so it doesn't need review
+            let emailId = email.id
+            Task {
+                do {
+                    _ = try await decisionSync.recordDecision(emailId: emailId, action: .keep)
+                } catch {
+                    print("Failed to sync keep decision to backend: \(error)")
+                }
+            }
+        case .unsubscribe:
+            queuedUnsubscribes.append(decision)
+            decisionIdsThisSession.insert(decision.id)
+        }
 
         // Check if session is complete
         if currentIndex >= emails.count - 1 {
@@ -209,160 +224,138 @@ final class SwipeViewModel: ObservableObject {
         }
     }
 
-    // MARK: - Undo System
+    // MARK: - Unsubscribe Queue
 
-    /// Commits the pending decision by firing the API call and clearing the undo state.
-    /// Called when: (1) undo timer expires, (2) user swipes next card,
-    /// (3) user navigates away, or (4) session resets.
-    func commitPendingDecision() {
-        guard let pending = pendingDecision else { return }
+    /// Number of queued unsubscribes that will be sent on confirm
+    var checkedQueuedCount: Int {
+        queuedUnsubscribes.filter { !uncheckedDecisionIds.contains($0.id) }.count
+    }
 
-        // Fire the API call and record the server-side outcome on the decision.
-        // Points/XP were awarded on the swipe and are unaffected by the outcome —
-        // a blocked unsubscribe request is not the user's fault.
-        let emailId = pending.email.id
-        let action = pending.action
-        let decision = pending.decision
-        let sessionId = currentSession?.id
-        Task {
-            do {
-                let response = try await apiService.recordDecision(emailId: emailId, action: action)
-                if action == .unsubscribe {
-                    recordOutcome(
-                        UnsubscribeOutcome.from(response.unsubscribeResult),
-                        method: response.unsubscribeResult?.method,
-                        on: decision,
-                        forSessionId: sessionId
-                    )
+    /// Flips a queued unsubscribe between "send" and "keep" on the review.
+    func toggleQueued(_ decision: Decision) {
+        if uncheckedDecisionIds.contains(decision.id) {
+            uncheckedDecisionIds.remove(decision.id)
+        } else {
+            uncheckedDecisionIds.insert(decision.id)
+        }
+    }
+
+    /// Confirms the review: withdraws unchecked decisions and sends the rest.
+    /// A send that never reaches the server leaves its decision queued, so
+    /// the user can retry; a server-reported failure is a final outcome.
+    func sendQueuedUnsubscribes() async {
+        guard sendProgress == nil else { return }
+
+        for decision in queuedUnsubscribes where uncheckedDecisionIds.contains(decision.id) {
+            withdraw(decision)
+        }
+        let toSend = queuedUnsubscribes.filter { !uncheckedDecisionIds.contains($0.id) }
+        uncheckedDecisionIds = []
+        guard !toSend.isEmpty else {
+            queuedUnsubscribes = []
+            unsentAfterLastSend = 0
+            return
+        }
+
+        sendProgress = (0, toSend.count)
+        let jobs = toSend.map { (id: $0.id, emailId: $0.emailId) }
+        let sync = decisionSync
+        var responses: [UUID: DecisionAPIResponse] = [:]
+
+        await withTaskGroup(of: (UUID, DecisionAPIResponse?).self) { group in
+            var nextJob = 0
+            for _ in 0..<min(maxConcurrentSends, jobs.count) {
+                let job = jobs[nextJob]
+                nextJob += 1
+                group.addTask {
+                    (job.id, try? await sync.recordDecision(emailId: job.emailId, action: .unsubscribe))
                 }
-            } catch {
-                print("Failed to sync decision to backend: \(error)")
-                // Decision is saved locally and stays .pending; re-sync is a
-                // separate concern (retry queue issue)
+            }
+            for await (id, response) in group {
+                responses[id] = response
+                sendProgress?.done += 1
+                if nextJob < jobs.count {
+                    let job = jobs[nextJob]
+                    nextJob += 1
+                    group.addTask {
+                        (job.id, try? await sync.recordDecision(emailId: job.emailId, action: .unsubscribe))
+                    }
+                }
             }
         }
 
-        // Clear undo state
-        stopUndoTimer()
-        pendingDecision = nil
-        undoTimeRemaining = 0
-    }
-
-    /// Applies the server-reported outcome to a committed decision and updates
-    /// the tally that drives the session-complete breakdown.
-    private func recordOutcome(
-        _ outcome: UnsubscribeOutcome,
-        method: String?,
-        on decision: Decision,
-        forSessionId sessionId: UUID?
-    ) {
-        // The decision may have been cascade-deleted (e.g. its session was
-        // deleted from Stats) while the request was in flight — skip dead models
-        if decision.modelContext != nil {
+        var stillQueued: [Decision] = []
+        for decision in toSend {
+            // No response means the request never reached the server
+            guard let response = responses[decision.id] else {
+                stillQueued.append(decision)
+                continue
+            }
+            let outcome = UnsubscribeOutcome.from(response.unsubscribeResult)
             decision.unsubscribeOutcome = outcome
-            decision.unsubscribeMethod = method
-            try? modelContext?.save()
-        }
-
-        // Only tally into the session the decision belongs to — a response can
-        // land after resetSession() has already started a new session
-        if sessionId != nil && sessionId == currentSession?.id {
+            decision.unsubscribeMethod = response.unsubscribeResult?.method
             sessionOutcomeCounts[outcome, default: 0] += 1
         }
+        try? modelContext?.save()
+
+        queuedUnsubscribes = stillQueued
+        unsentAfterLastSend = stillQueued.count
+        sendProgress = nil
     }
 
-    /// Rolls back the most recent swipe decision.
-    /// Reverses all local persistence: removes the Decision from SwiftData,
-    /// reverses Session/DailyActivity/PlayerProfile counts, and decrements
-    /// currentIndex so the card reappears at the top of the stack.
-    func undoLastDecision() {
-        guard let pending = pendingDecision else { return }
-
-        let decision = pending.decision
-
-        // Stop the timer — no API call should fire for this decision
-        stopUndoTimer()
-
-        // Roll back SwiftData persistence
-        if let context = modelContext {
-            // Reverse session counts and points
-            currentSession?.removeDecision(decision)
-
-            // Reverse daily activity counts
-            let dailyActivity = context.getOrCreateDailyActivity(for: Date())
-            dailyActivity.reverseDecision(decision)
-
-            // Reverse gamification awards (points, XP, level, lifetime counts)
-            gamificationService?.reverseDecision(decision)
-
-            // Delete the Decision object from SwiftData
-            context.delete(decision)
-
-            // Persist the rollback
-            try? context.save()
+    /// Withdraws every queued unsubscribe without sending any of them.
+    func discardQueuedUnsubscribes() {
+        for decision in queuedUnsubscribes {
+            withdraw(decision)
         }
+        queuedUnsubscribes = []
+        uncheckedDecisionIds = []
+        unsentAfterLastSend = 0
+    }
 
-        // Reverse local UI counts
-        switch pending.action {
-        case .unsubscribe:
+    /// Reverses a queued unsubscribe as if it had never been swiped: session
+    /// and daily counts, points and XP, and the Decision itself. The sender
+    /// can then appear in a future session. Achievements stay unlocked and
+    /// streaks stand, since the user did act that day.
+    private func withdraw(_ decision: Decision) {
+        guard let context = modelContext else { return }
+
+        owningSession(of: decision)?.removeDecision(decision)
+
+        // The swipe may be from an earlier day if the queue was left over
+        context.getOrCreateDailyActivity(for: decision.timestamp).reverseDecision(decision)
+        gamificationService?.reverseDecision(decision)
+        context.delete(decision)
+        try? context.save()
+
+        if decisionIdsThisSession.remove(decision.id) != nil {
             unsubscribeCount -= 1
-        case .keep:
-            keepCount -= 1
-        }
-
-        // Decrement currentIndex so the card reappears
-        currentIndex -= 1
-
-        // If the session was completed (user swiped the last card),
-        // revert to swiping state so they can continue
-        if sessionState == .completed {
-            sessionState = .swiping
-        }
-
-        // Clear the undo slot
-        pendingDecision = nil
-        undoTimeRemaining = 0
-
-        // Haptic feedback — distinct "undo" feel (warning pattern)
-        let generator = UINotificationFeedbackGenerator()
-        generator.notificationOccurred(.warning)
-    }
-
-    /// Called by SwipeContainerView.onDisappear and resetSession() to ensure
-    /// pending decisions don't linger when navigating away from the swipe view.
-    func commitIfPending() {
-        if pendingDecision != nil {
-            commitPendingDecision()
         }
     }
 
-    /// Starts the undo countdown timer. Updates undoTimeRemaining at 20fps
-    /// to drive the countdown ring animation on the UndoButton.
-    private func startUndoTimer() {
-        stopUndoTimer()
-        undoTimeRemaining = 1.0
-
-        undoTimer = Timer.scheduledTimer(withTimeInterval: undoTimerInterval, repeats: true) { [weak self] timer in
-            guard let self else {
-                timer.invalidate()
-                return
-            }
-
-            Task { @MainActor in
-                self.undoTimeRemaining -= self.undoTimerInterval / self.undoDuration
-
-                // Timer expired — commit the decision and fire the API call
-                if self.undoTimeRemaining <= 0 {
-                    self.commitPendingDecision()
-                }
-            }
+    /// Decision has no back-reference to its Session, so search for it.
+    private func owningSession(of decision: Decision) -> Session? {
+        if let session = currentSession, session.decisions.contains(where: { $0.id == decision.id }) {
+            return session
         }
+        let sessions = (try? modelContext?.fetch(FetchDescriptor<Session>())) ?? []
+        return sessions.first { $0.decisions.contains { $0.id == decision.id } }
     }
 
-    /// Stops and invalidates the undo timer.
-    private func stopUndoTimer() {
-        undoTimer?.invalidate()
-        undoTimer = nil
+    /// Restores the queue from SwiftData, e.g. after the app was closed
+    /// before the user confirmed their unsubscribes.
+    private func loadQueuedUnsubscribes() {
+        guard let context = modelContext else { return }
+
+        // Filter the optional outcome in memory rather than in #Predicate,
+        // matching StatsViewModel.loadOutcomeCounts
+        let unsubscribeAction = DecisionAction.unsubscribe.rawValue
+        let descriptor = FetchDescriptor<Decision>(
+            predicate: #Predicate { $0.actionRawValue == unsubscribeAction },
+            sortBy: [SortDescriptor(\.timestamp)]
+        )
+        queuedUnsubscribes = ((try? context.fetch(descriptor)) ?? [])
+            .filter { $0.unsubscribeOutcome == .queued }
     }
 
     /// Completes the current session and calculates final stats.
@@ -385,15 +378,17 @@ final class SwipeViewModel: ObservableObject {
         sessionState = .completed
     }
 
-    /// Resets the session state to start a new session.
-    /// Commits any pending undo decision first to avoid data loss.
+    /// Resets the session state to start a new session. Queued unsubscribes
+    /// are untouched: the caller has already sent or discarded them, or they
+    /// carry over to the next review.
     func resetSession() {
-        commitIfPending()
         emails = []
         currentIndex = 0
         unsubscribeCount = 0
         keepCount = 0
+        decisionIdsThisSession = []
         sessionOutcomeCounts = [:]
+        unsentAfterLastSend = 0
         currentSession = nil
         sessionState = .notStarted
         errorMessage = nil

@@ -345,7 +345,8 @@ struct StatsView: View {
             (.confirmed, .green),
             (.attempted, .orange),
             (.failed, .red),
-            (.pending, .gray)
+            (.pending, .gray),
+            (.queued, .secondary)
         ]
         let trackedTotal = viewModel.outcomeCounts.values.reduce(0, +)
 
