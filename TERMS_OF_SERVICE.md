@@ -55,7 +55,7 @@ By connecting your Gmail account, you grant Unpile permission to:
 
 ### 5.2 What We DO NOT Access
 Unpile does NOT:
-- Read the full content/body of your emails
+- Store the content of your emails (message bodies are scanned only to find unsubscribe links and show a short preview)
 - Delete emails from your inbox
 - Send emails on your behalf (except unsubscribe requests)
 - Access attachments, contacts, or other Google services
