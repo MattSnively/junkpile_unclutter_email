@@ -658,6 +658,8 @@ app.get('/api/emails', authenticateRequest, requireGmail, async (req, res) => {
 app.post('/api/decision', authenticateRequest, async (req, res) => {
     try {
         const { emailId, decision } = req.body;
+        // Opt-in per request: the user ticked "Also move these emails to Trash"
+        const trashRequested = req.body.trash === true && decision === 'unsubscribe';
 
         // Validate required fields
         if (!emailId || !decision) {
@@ -675,6 +677,7 @@ app.post('/api/decision', authenticateRequest, async (req, res) => {
         // Sender address is stored with the decision so later batches can skip
         // this sender entirely, not just this one message.
         let senderAddress = null;
+        let trashed = false;
         if (req.authTokens) {
             const gmailService = new GmailService(oauthClientFor(await withGrantedScope(req.authTokens)));
 
@@ -696,6 +699,17 @@ app.post('/api/decision', authenticateRequest, async (req, res) => {
             } catch (error) {
                 console.error('Gmail error during decision:', error);
                 return sendGmailError(res, error);
+            }
+
+            // Only the message shown on the card, and after the unsubscribe so
+            // a Trash failure can never cost the user their unsubscribe
+            if (trashRequested) {
+                try {
+                    await gmailService.trashMessage(emailId);
+                    trashed = true;
+                } catch (error) {
+                    console.error('Trash failed during decision:', error.message);
+                }
             }
         }
 
@@ -736,7 +750,10 @@ app.post('/api/decision', authenticateRequest, async (req, res) => {
                 : 'Email kept',
             unsubscribeResult: decision === 'unsubscribe'
                 ? unsubResult?.unsubscribeResult
-                : undefined
+                : undefined,
+            // Present only when Trash was requested, so the app can tell
+            // "not asked" from "asked and failed"
+            trashed: trashRequested ? trashed : undefined
         });
     } catch (error) {
         console.error('Error saving decision:', error);

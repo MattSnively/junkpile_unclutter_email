@@ -737,6 +737,18 @@ struct QueuedUnsubscribeReview: View {
             )
             .cornerRadius(12)
 
+            Toggle(isOn: $viewModel.alsoMoveToTrash) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Also move these emails to Trash")
+                        .font(.subheadline)
+                        .foregroundColor(.primary)
+                    Text("Only the email shown on each checked card. Gmail keeps Trash for 30 days.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            }
+            .disabled(isSending || viewModel.checkedQueuedCount == 0)
+
             if viewModel.unsentAfterLastSend > 0 && !isSending {
                 Text("\(viewModel.unsentAfterLastSend.localized) couldn't be sent. Check your connection and try again.")
                     .font(.caption)

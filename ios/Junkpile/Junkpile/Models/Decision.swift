@@ -134,6 +134,10 @@ final class Decision {
     /// repeat-offender tracking planned in the PRO tier.
     var unsubscribeMethod: String?
 
+    /// Whether the shown message was moved to Gmail Trash on confirm. Nil when
+    /// the user didn't ask for it, false when they did and it failed.
+    var movedToTrash: Bool?
+
     // MARK: - Computed Properties
 
     /// The action enum derived from the raw value
@@ -189,6 +193,7 @@ final class Decision {
             ? UnsubscribeOutcome.queued.rawValue
             : nil
         self.unsubscribeMethod = nil
+        self.movedToTrash = nil
 
         // Calculate points and XP based on action type
         // Unsubscribe: 10 points, 15 XP (rewards decluttering)

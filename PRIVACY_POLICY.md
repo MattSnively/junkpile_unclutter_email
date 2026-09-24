@@ -1,6 +1,6 @@
 # Privacy Policy for Unpile
 
-**Last Updated: September 23, 2026**
+**Last Updated: September 24, 2026**
 
 ## Introduction
 
@@ -15,7 +15,7 @@ Unpile ("we," "our," or "us") is committed to protecting your privacy. This Priv
 - **We DO NOT sell your data to third parties**
 - **We DO NOT share your email data with anyone, except the unsubscribe request itself (see "Unsubscribe Requests" below)**
 - **We DO NOT use your email data for machine learning or AI training**
-- **We DO NOT delete your emails**
+- **We DO NOT delete your emails**, unless you choose to move them to Trash (see below)
 
 ## Email Data We Process But Do Not Store
 
@@ -62,12 +62,16 @@ Unpile requests these Google permissions:
 | Permission | Why we need it |
 |---|---|
 | `gmail.readonly` | To find subscription emails and read their unsubscribe information |
-| `gmail.modify` | To mark an email as read after you unsubscribe from it |
+| `gmail.modify` | To mark an email as read after you unsubscribe from it, and, only if you choose, to move it to Trash |
 | `gmail.send` | To send an unsubscribe email on your behalf when a sender only accepts unsubscribes by email |
 
 You can decline `gmail.send` on Google's consent screen. If you do, Unpile skips senders that can only be unsubscribed by email.
 
-We do not use these permissions to delete emails, to send any email other than an unsubscribe request you asked for, or to access any other Google service.
+We do not use these permissions to permanently delete emails, to send any email other than an unsubscribe request you asked for, or to access any other Google service.
+
+### Moving Emails to Trash (Optional)
+
+When you confirm your unsubscribes, you can choose "Also move these emails to Trash." This option is off unless you turn it on. If you do, Unpile moves only the one email shown on each card you confirmed to your Gmail Trash, not any other mail from that sender. Gmail keeps Trash for 30 days, so you can restore an email from Gmail during that time. Unpile never permanently deletes email.
 
 ### Google API Services User Data Policy
 
@@ -149,7 +153,7 @@ When we update this policy, we will change the "Last Updated" date above. For ma
 
 ❌ **We DO NOT:**
 - Store your email content, subjects, or previews on our servers
-- Delete your emails
+- Delete your emails, except moving the ones you choose to Gmail Trash
 - Sell your data, or use your email for advertising, profiling, or AI training
 
 🔒 **Your Control:**

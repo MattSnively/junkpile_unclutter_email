@@ -444,6 +444,18 @@ class GmailService {
     }
 
     /**
+     * Moves one message to Gmail Trash, where Gmail keeps it for 30 days
+     * before deleting it. Never permanently deletes: that would need the
+     * broader https://mail.google.com/ scope, and a mistake couldn't be undone.
+     *
+     * @param {string} messageId - Gmail message ID
+     * @returns {Promise<void>}
+     */
+    async trashMessage(messageId) {
+        await this.gmail.users.messages.trash({ userId: 'me', id: messageId });
+    }
+
+    /**
      * Sends an email via Gmail API.
      * Used by UnsubscribeService for mailto-based unsubscribe.
      * Requires gmail.send scope in the OAuth credentials.

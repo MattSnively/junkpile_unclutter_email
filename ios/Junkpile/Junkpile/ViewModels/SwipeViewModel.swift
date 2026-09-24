@@ -4,7 +4,7 @@ import SwiftData
 /// The per-decision API call the swipe flow makes. A protocol so tests can
 /// stand in for the network.
 protocol DecisionSyncing {
-    func recordDecision(emailId: String, action: DecisionAction) async throws -> DecisionAPIResponse
+    func recordDecision(emailId: String, action: DecisionAction, trash: Bool) async throws -> DecisionAPIResponse
 }
 
 extension APIService: DecisionSyncing {}
@@ -59,6 +59,10 @@ final class SwipeViewModel: ObservableObject {
     /// How many unsubscribes from the last confirm never reached the server.
     /// They stay queued so the user can try again.
     @Published private(set) var unsentAfterLastSend: Int = 0
+
+    /// "Also move these emails to Trash" on the review. Off by default and
+    /// per review: deleting mail should always be a deliberate choice.
+    @Published var alsoMoveToTrash = false
 
     // MARK: - Session State
 
@@ -208,7 +212,7 @@ final class SwipeViewModel: ObservableObject {
             let emailId = email.id
             Task {
                 do {
-                    _ = try await decisionSync.recordDecision(emailId: emailId, action: .keep)
+                    _ = try await decisionSync.recordDecision(emailId: emailId, action: .keep, trash: false)
                 } catch {
                     print("Failed to sync keep decision to backend: \(error)")
                 }
@@ -260,6 +264,7 @@ final class SwipeViewModel: ObservableObject {
         sendProgress = (0, toSend.count)
         let jobs = toSend.map { (id: $0.id, emailId: $0.emailId) }
         let sync = decisionSync
+        let trash = alsoMoveToTrash
         var responses: [UUID: DecisionAPIResponse] = [:]
 
         await withTaskGroup(of: (UUID, DecisionAPIResponse?).self) { group in
@@ -268,7 +273,7 @@ final class SwipeViewModel: ObservableObject {
                 let job = jobs[nextJob]
                 nextJob += 1
                 group.addTask {
-                    (job.id, try? await sync.recordDecision(emailId: job.emailId, action: .unsubscribe))
+                    (job.id, try? await sync.recordDecision(emailId: job.emailId, action: .unsubscribe, trash: trash))
                 }
             }
             for await (id, response) in group {
@@ -278,7 +283,7 @@ final class SwipeViewModel: ObservableObject {
                     let job = jobs[nextJob]
                     nextJob += 1
                     group.addTask {
-                        (job.id, try? await sync.recordDecision(emailId: job.emailId, action: .unsubscribe))
+                        (job.id, try? await sync.recordDecision(emailId: job.emailId, action: .unsubscribe, trash: trash))
                     }
                 }
             }
@@ -294,6 +299,7 @@ final class SwipeViewModel: ObservableObject {
             let outcome = UnsubscribeOutcome.from(response.unsubscribeResult)
             decision.unsubscribeOutcome = outcome
             decision.unsubscribeMethod = response.unsubscribeResult?.method
+            decision.movedToTrash = response.trashed
             sessionOutcomeCounts[outcome, default: 0] += 1
         }
         try? modelContext?.save()
@@ -389,6 +395,7 @@ final class SwipeViewModel: ObservableObject {
         decisionIdsThisSession = []
         sessionOutcomeCounts = [:]
         unsentAfterLastSend = 0
+        alsoMoveToTrash = false
         currentSession = nil
         sessionState = .notStarted
         errorMessage = nil

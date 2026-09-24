@@ -6,22 +6,28 @@ import SwiftData
 /// confirmed unsubscribes concurrently.
 private actor FakeDecisionSync: DecisionSyncing {
     private(set) var sentEmailIds: [String] = []
+    /// Email IDs whose request asked for the message to be trashed
+    private(set) var trashRequestedEmailIds: [String] = []
     private let unreachableEmailIds: Set<String>
 
     init(unreachableEmailIds: Set<String> = []) {
         self.unreachableEmailIds = unreachableEmailIds
     }
 
-    func recordDecision(emailId: String, action: DecisionAction) async throws -> DecisionAPIResponse {
+    func recordDecision(emailId: String, action: DecisionAction, trash: Bool) async throws -> DecisionAPIResponse {
         if unreachableEmailIds.contains(emailId) {
             throw APIError.networkError("offline")
         }
         sentEmailIds.append(emailId)
+        if trash {
+            trashRequestedEmailIds.append(emailId)
+        }
         return DecisionAPIResponse(
             success: true,
             message: nil,
             error: nil,
-            unsubscribeResult: UnsubscribeResult(success: true, method: "rfc8058", attempted: ["rfc8058"], error: nil)
+            unsubscribeResult: UnsubscribeResult(success: true, method: "rfc8058", attempted: ["rfc8058"], error: nil),
+            trashed: trash ? true : nil
         )
     }
 }
@@ -108,6 +114,34 @@ final class SwipeViewModelQueueTests: XCTestCase {
         let relaunched = makeViewModel(FakeDecisionSync())
 
         XCTAssertEqual(relaunched.queuedUnsubscribes.map(\.emailId), ["a"])
+    }
+
+    // Deleting mail must be a deliberate choice
+    func testTrashIsNotRequestedByDefault() async {
+        let sync = FakeDecisionSync()
+        let viewModel = makeViewModel(sync)
+        viewModel.recordDecision(email: email("a"), action: .unsubscribe)
+
+        await viewModel.sendQueuedUnsubscribes()
+
+        let trashed = await sync.trashRequestedEmailIds
+        XCTAssertTrue(trashed.isEmpty)
+        XCTAssertNil(storedDecisions().first?.movedToTrash)
+    }
+
+    func testTrashAppliesOnlyToCheckedSendersWhenChosen() async {
+        let sync = FakeDecisionSync()
+        let viewModel = makeViewModel(sync)
+        viewModel.recordDecision(email: email("a"), action: .unsubscribe)
+        viewModel.recordDecision(email: email("b"), action: .unsubscribe)
+        viewModel.toggleQueued(viewModel.queuedUnsubscribes[1])
+        viewModel.alsoMoveToTrash = true
+
+        await viewModel.sendQueuedUnsubscribes()
+
+        let trashed = await sync.trashRequestedEmailIds
+        XCTAssertEqual(trashed, ["a"])
+        XCTAssertEqual(storedDecisions().first { $0.emailId == "a" }?.movedToTrash, true)
     }
 
     func testDiscardWithdrawsEverythingWithoutSending() async {
