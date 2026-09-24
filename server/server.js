@@ -7,6 +7,7 @@ const path = require('path');
 const crypto = require('crypto');
 const { google } = require('googleapis');
 const GmailService = require('./gmailService');
+const { createOAuthClient, oauthClientFor } = require('./oauthClient');
 const { verifyAppleToken } = require('./appleAuth');
 const { exchangeAuthorizationCode, revokeAppleToken } = require('./appleRevoke');
 const { generateSessionToken, verifySessionToken } = require('./sessionToken');
@@ -36,12 +37,9 @@ app.get('/health', (req, res) => {
     res.json({ status: 'ok' });
 });
 
-// OAuth2 Client — used for web auth flow (session-based)
-const oauth2Client = new google.auth.OAuth2(
-    process.env.GMAIL_CLIENT_ID,
-    process.env.GMAIL_CLIENT_SECRET,
-    process.env.GMAIL_REDIRECT_URI || 'http://localhost:3000/auth/google/callback'
-);
+// Shared client for the web auth flow only (auth URL, code exchange). It must
+// never hold a user's credentials: see oauthClientFor.
+const oauth2Client = createOAuthClient();
 
 /**
  * Exchange a mobile auth code directly with Google's token endpoint.
@@ -170,9 +168,8 @@ app.post('/api/auth/mobile', async (req, res) => {
         const tokens = await exchangeMobileAuthCode(code);
 
         // Get user info using the access token.
-        // Access tokens are client-agnostic, so we can use the web oauth2Client.
-        oauth2Client.setCredentials({ access_token: tokens.access_token });
-        const oauth2 = google.oauth2({ version: 'v2', auth: oauth2Client });
+        // Access tokens are client-agnostic, so the web client config works here.
+        const oauth2 = google.oauth2({ version: 'v2', auth: oauthClientFor({ access_token: tokens.access_token }) });
         const userInfo = await oauth2.userinfo.get();
 
         // Return tokens to the mobile app
@@ -268,8 +265,7 @@ app.post('/api/auth/refresh', async (req, res) => {
         }
 
         // Web client refresh (existing behavior)
-        oauth2Client.setCredentials({ refresh_token });
-        const { credentials } = await oauth2Client.refreshAccessToken();
+        const { credentials } = await oauthClientFor({ refresh_token }).refreshAccessToken();
 
         res.json({
             success: true,
@@ -322,8 +318,7 @@ app.get('/api/auth/validate', async (req, res) => {
 
     // Fall back to Google access token validation (existing behavior)
     try {
-        oauth2Client.setCredentials({ access_token: token });
-        const oauth2 = google.oauth2({ version: 'v2', auth: oauth2Client });
+        const oauth2 = google.oauth2({ version: 'v2', auth: oauthClientFor({ access_token: token }) });
         const userInfo = await oauth2.userinfo.get();
 
         res.json({
@@ -471,8 +466,7 @@ app.post('/api/auth/connect-gmail', async (req, res) => {
         // The connect-gmail flow only requests Gmail scopes (no email/profile),
         // so we can't use oauth2.userinfo. Use gmail.users.getProfile instead,
         // which only requires the gmail.readonly scope.
-        oauth2Client.setCredentials({ access_token: tokens.access_token });
-        const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
+        const gmail = google.gmail({ version: 'v1', auth: oauthClientFor({ access_token: tokens.access_token }) });
         const profile = await gmail.users.getProfile({ userId: 'me' });
         const gmailEmail = profile.data.emailAddress;
 
@@ -514,7 +508,7 @@ app.post('/api/auth/connect-gmail', async (req, res) => {
 
 // =============================================================================
 // Helper middleware for mobile authentication
-// Extracts Bearer token and sets up oauth2Client for authenticated endpoints
+// Extracts Bearer token and resolves the caller's Gmail tokens (req.authTokens)
 // =============================================================================
 
 /**
@@ -621,7 +615,6 @@ app.get('/auth/google/callback', async (req, res) => {
 
     try {
         const { tokens } = await oauth2Client.getToken(code);
-        oauth2Client.setCredentials(tokens);
 
         // Store tokens in session
         req.session.tokens = tokens;
@@ -638,8 +631,7 @@ app.get('/auth/google/callback', async (req, res) => {
 app.get('/api/emails', authenticateRequest, requireGmail, async (req, res) => {
     try {
         // Use tokens from middleware (works for both web and mobile)
-        oauth2Client.setCredentials(req.authTokens);
-        const gmailService = new GmailService(oauth2Client);
+        const gmailService = new GmailService(oauthClientFor(req.authTokens));
 
         // Skip anything this user already decided on, otherwise the same
         // senders come back every session until newer mail displaces them.
@@ -682,8 +674,7 @@ app.post('/api/decision', authenticateRequest, async (req, res) => {
         // this sender entirely, not just this one message.
         let senderAddress = null;
         if (req.authTokens) {
-            oauth2Client.setCredentials(req.authTokens);
-            const gmailService = new GmailService(oauth2Client);
+            const gmailService = new GmailService(oauthClientFor(req.authTokens));
 
             // Gmail failures here are the caller's token or quota, not our bug,
             // so classify them instead of letting them fall through to a 500.
@@ -758,8 +749,7 @@ app.post('/api/decision', authenticateRequest, async (req, res) => {
  */
 app.get('/api/subscriptions/count', authenticateRequest, requireGmail, async (req, res) => {
     try {
-        oauth2Client.setCredentials(req.authTokens);
-        const gmailService = new GmailService(oauth2Client);
+        const gmailService = new GmailService(oauthClientFor(req.authTokens));
 
         const decided = await decisionStore.getDecided(req.userKey);
         const result = await gmailService.countUnsubscribeSenders({ excludeSenders: decided.senders });
