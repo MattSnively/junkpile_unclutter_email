@@ -24,6 +24,10 @@ const MAX_REDIRECTS = 5;
 // User-Agent string for outbound unsubscribe requests
 const USER_AGENT = 'Unpile-Unsubscribe/1.0';
 
+// One bare address: no whitespace or control characters, no list separators,
+// no display-name brackets, and a dotted domain.
+const SINGLE_ADDRESS = /^[^\s@,;<>()"]+@[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)+$/;
+
 class UnsubscribeService {
 
     /**
@@ -232,12 +236,24 @@ class UnsubscribeService {
                 return null;
             }
 
+            // The sender controls this URL, and `to` and `subject` become
+            // headers of a message sent from the user's account. Allow exactly
+            // one bare address and no line breaks, or a crafted header could
+            // add a Bcc and turn us into a relay.
+            const to = decodeURIComponent(recipient);
+            if (!SINGLE_ADDRESS.test(to)) {
+                return null;
+            }
+
             // Parse query parameters for subject and body
             let subject = 'Unsubscribe';
             let body = '';
 
             if (queryString) {
                 const params = new URLSearchParams(queryString);
+                if (['to', 'cc', 'bcc'].some(field => [...params.keys()].some(key => key.toLowerCase() === field))) {
+                    return null;
+                }
                 if (params.has('subject')) {
                     subject = params.get('subject');
                 }
@@ -246,11 +262,11 @@ class UnsubscribeService {
                 }
             }
 
-            return {
-                to: decodeURIComponent(recipient),
-                subject,
-                body
-            };
+            if (/[\r\n]/.test(subject)) {
+                return null;
+            }
+
+            return { to, subject, body };
         } catch {
             return null;
         }

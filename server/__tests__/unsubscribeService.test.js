@@ -189,6 +189,30 @@ describe('UnsubscribeService', () => {
         it('returns null for mailto with no recipient', () => {
             expect(service.parseMailtoUrl('mailto:')).toBeNull();
         });
+
+        // The URL comes from a sender's header and its parts become headers of
+        // an email sent from the user's account, so anything that could add a
+        // header or a second recipient must be refused outright.
+        describe('rejects header injection and extra recipients', () => {
+            it.each([
+                ['CRLF in the recipient', 'mailto:unsub@example.com%0D%0ABcc:victim@evil.test'],
+                ['bare LF in the recipient', 'mailto:unsub@example.com%0ABcc:victim@evil.test'],
+                ['CRLF in the subject', 'mailto:unsub@example.com?subject=Hi%0D%0ABcc:victim@evil.test'],
+                ['a comma-separated second recipient', 'mailto:unsub@example.com,victim@evil.test'],
+                ['an encoded second recipient', 'mailto:unsub@example.com%2Cvictim@evil.test'],
+                ['a to= query recipient', 'mailto:unsub@example.com?to=victim@evil.test'],
+                ['cc/bcc query fields', 'mailto:unsub@example.com?bcc=victim@evil.test'],
+                ['a display-name recipient', 'mailto:Evil%20%3Cvictim@evil.test%3E'],
+                ['a recipient without a domain', 'mailto:unsub']
+            ])('%s', (_label, url) => {
+                expect(service.parseMailtoUrl(url)).toBeNull();
+            });
+
+            it('keeps line breaks in the body, which is not a header', () => {
+                const result = service.parseMailtoUrl('mailto:unsub@example.com?body=line1%0D%0Aline2');
+                expect(result).toEqual({ to: 'unsub@example.com', subject: 'Unsubscribe', body: 'line1\r\nline2' });
+            });
+        });
     });
 
     // =====================================================================
