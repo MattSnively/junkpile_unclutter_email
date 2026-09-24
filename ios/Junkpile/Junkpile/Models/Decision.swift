@@ -51,6 +51,42 @@ enum UnsubscribeOutcome: String, Codable, CaseIterable {
         }
         return (result.attempted ?? []).isEmpty ? .failed : .attempted
     }
+
+    /// Order in a results list: the ones the user may need to act on first
+    var resultsSortOrder: Int {
+        switch self {
+        case .failed: return 0
+        case .attempted: return 1
+        case .queued: return 2
+        case .pending: return 3
+        case .confirmed: return 4
+        }
+    }
+}
+
+extension Decision {
+
+    /// Plain-language reason for this unsubscribe's outcome, so a user can
+    /// tell which senders need a manual follow-up and why.
+    var outcomeExplanation: String {
+        switch unsubscribeOutcome {
+        case .queued:
+            return "Not sent yet"
+        case .pending, nil:
+            return "Sent, waiting for a result"
+        case .confirmed:
+            switch unsubscribeMethod {
+            case "rfc8058": return "Unsubscribed with the sender's one-click link"
+            case "http-header", "http-body": return "Unsubscribed through the sender's unsubscribe page"
+            case "mailto": return "Unsubscribed by email from your account"
+            default: return "Unsubscribed"
+            }
+        case .attempted:
+            return "Request sent, but the sender didn't confirm it. You may need to unsubscribe on their site."
+        case .failed:
+            return "No working unsubscribe option was found. Try the unsubscribe link in the email."
+        }
+    }
 }
 
 /// Decision represents a single swipe action on an email.

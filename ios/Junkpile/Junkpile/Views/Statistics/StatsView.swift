@@ -414,7 +414,13 @@ struct StatsView: View {
 
             if !viewModel.recentSessions.isEmpty {
                 ForEach(viewModel.recentSessions) { session in
-                    sessionRow(session)
+                    NavigationLink {
+                        SessionResultsView(sessionId: session.id, date: session.date)
+                    } label: {
+                        sessionRow(session)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityHint("Shows each email's unsubscribe result")
 
                     if session.id != viewModel.recentSessions.last?.id {
                         Divider()
