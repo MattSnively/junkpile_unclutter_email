@@ -135,6 +135,8 @@ struct DecisionAPIResponse: Codable {
     let error: String?
     /// Details of the server-side unsubscribe execution attempt (nil for "keep" decisions)
     let unsubscribeResult: UnsubscribeResult?
+    /// Whether the message was moved to Trash; nil when Trash wasn't requested
+    let trashed: Bool?
 }
 
 /// Result details from the server's unsubscribe execution attempt.

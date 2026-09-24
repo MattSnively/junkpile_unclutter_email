@@ -60,13 +60,31 @@ struct UnsubscribeResultsList: View {
                     .font(.caption)
                     .foregroundColor(outcome == .confirmed ? .secondary : Self.color(for: outcome))
                     .fixedSize(horizontal: false, vertical: true)
+                if let trashStatus = Self.trashStatus(for: decision) {
+                    Label(trashStatus, systemImage: decision.movedToTrash == true ? "trash" : "trash.slash")
+                        .font(.caption)
+                        .foregroundColor(decision.movedToTrash == true ? .secondary : .orange)
+                }
             }
             Spacer(minLength: 0)
         }
         .padding(12)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(decision.emailSender), \(decision.emailSubject)")
-        .accessibilityValue("\(outcome.displayName). \(decision.outcomeExplanation)")
+        .accessibilityValue(
+            ["\(outcome.displayName). \(decision.outcomeExplanation)", Self.trashStatus(for: decision)]
+                .compactMap { $0 }
+                .joined(separator: ". ")
+        )
+    }
+
+    /// Nil when the user didn't ask for Trash on this one
+    static func trashStatus(for decision: Decision) -> String? {
+        switch decision.movedToTrash {
+        case true?: return "Moved to Trash"
+        case false?: return "Couldn't move to Trash"
+        case nil: return nil
+        }
     }
 
     static func iconName(for outcome: UnsubscribeOutcome) -> String {

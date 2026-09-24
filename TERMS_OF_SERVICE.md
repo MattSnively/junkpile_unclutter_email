@@ -56,7 +56,7 @@ By connecting your Gmail account, you grant Unpile permission to:
 ### 5.2 What We DO NOT Access
 Unpile does NOT:
 - Store the content of your emails (message bodies are scanned only to find unsubscribe links and show a short preview)
-- Delete emails from your inbox
+- Delete emails from your inbox (it only moves an email to Gmail Trash when you choose "Also move these emails to Trash," and never deletes permanently)
 - Send emails on your behalf (except unsubscribe requests)
 - Access attachments, contacts, or other Google services
 

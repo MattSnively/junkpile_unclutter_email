@@ -190,14 +190,16 @@ final class APIService {
     ///   - emailId: The Gmail message ID
     ///   - action: The action taken (unsubscribe or keep)
     /// - Returns: DecisionAPIResponse indicating success
-    func recordDecision(emailId: String, action: DecisionAction) async throws -> DecisionAPIResponse {
+    func recordDecision(emailId: String, action: DecisionAction, trash: Bool) async throws -> DecisionAPIResponse {
         // Check token validity and refresh if needed
         try await ensureValidToken()
 
         let endpoint = "/api/decision"
         let body: [String: Any] = [
             "emailId": emailId,
-            "decision": action.rawValue
+            "decision": action.rawValue,
+            // Move this one message to Gmail Trash after unsubscribing
+            "trash": trash
         ]
 
         return try await post(endpoint, body: body, authenticated: true)

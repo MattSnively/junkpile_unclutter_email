@@ -331,6 +331,24 @@ describe('GmailService', () => {
         });
     });
 
+    describe('trashMessage', () => {
+        it('moves exactly the given message to Trash', async () => {
+            const trash = jest.fn().mockResolvedValue({});
+            const remove = jest.fn();
+            service.gmail = { users: { messages: { trash, delete: remove } } };
+
+            await service.trashMessage('msg-123');
+
+            expect(trash).toHaveBeenCalledWith({ userId: 'me', id: 'msg-123' });
+            expect(remove).not.toHaveBeenCalled();
+        });
+
+        it('lets a Gmail failure propagate so the caller can report it', async () => {
+            service.gmail = { users: { messages: { trash: jest.fn().mockRejectedValue(new Error('403')) } } };
+            await expect(service.trashMessage('msg-123')).rejects.toThrow('403');
+        });
+    });
+
     describe('sendEmail', () => {
         it('refuses header values containing line breaks', async () => {
             service.gmail = { users: { messages: { send: jest.fn() } } };
