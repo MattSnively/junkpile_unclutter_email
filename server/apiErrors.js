@@ -121,6 +121,8 @@ function unsubscribeFailureCode(error) {
         case 'no-unsubscribe-data': return 'UNSUBSCRIBE_FAILED_NO_METHOD';
         case 'not-authenticated': return 'UNSUBSCRIBE_FAILED_NOT_AUTHENTICATED';
         case 'gmail.send scope not available': return 'UNSUBSCRIBE_FAILED_SCOPE';
+        // The sender's page loaded, but it may need the user to click Confirm
+        case 'unsubscribe-page-needs-confirmation': return 'UNSUBSCRIBE_NEEDS_CONFIRMATION';
         default:
             // URL validation rejections come from UnsubscribeService.validateUrl
             if (/^(Malformed URL|Disallowed protocol|URL contains embedded credentials|Private\/internal host)/.test(error)) {

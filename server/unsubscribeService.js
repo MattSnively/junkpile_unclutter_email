@@ -304,13 +304,13 @@ class UnsubscribeService {
 
     /**
      * Main orchestration method — tries all unsubscribe methods in cascade order.
-     * First success wins; records all methods attempted for debugging.
+     * The first verified method wins; records all methods attempted for debugging.
      *
      * Cascade order:
-     *   1. RFC 8058 one-click POST (if List-Unsubscribe-Post header present)
-     *   2. HTTP POST/GET to List-Unsubscribe header URL(s)
-     *   3. HTTP POST/GET to body-extracted unsubscribe URL
-     *   4. Mailto fallback (if gmail.send scope available)
+     *   1. RFC 8058 one-click POST (if List-Unsubscribe-Post header present) — verified on 2xx
+     *   2. HTTP POST/GET to List-Unsubscribe header URL(s) — never verified
+     *   3. HTTP POST/GET to body-extracted unsubscribe URL — never verified
+     *   4. Mailto fallback (if gmail.send scope available) — verified once sent
      *
      * @param {object} options
      * @param {string[]} options.httpUrls - HTTP(S) URLs from List-Unsubscribe header
@@ -341,24 +341,25 @@ class UnsubscribeService {
             }
         }
 
-        // --- Method 2: HTTP POST/GET to List-Unsubscribe header URLs ---
-        // Try each URL from the header (usually just one, but RFC allows multiple)
+        // --- Methods 2-3: plain links (List-Unsubscribe header, then email body) ---
+        // A 2xx here only proves a page loaded. Most of these are landing pages
+        // that still want the user to click "Confirm", so a 2xx is never
+        // reported as confirmed; it just ends the link attempts, since the
+        // other links almost always lead to the same page.
+        let pageLoaded = false;
         for (const url of httpUrls) {
             attempted.push('http-header');
             const result = await this.performHttpUnsubscribe(url, false);
             if (result.success) {
-                return { success: true, method: 'http-header', attempted, error: null };
+                pageLoaded = true;
+                break;
             }
         }
 
-        // --- Method 3: HTTP POST/GET to email body URL ---
-        // Fallback: use the unsubscribe link found in the email body HTML
-        if (bodyUrl) {
+        if (bodyUrl && !pageLoaded) {
             attempted.push('http-body');
             const result = await this.performHttpUnsubscribe(bodyUrl, false);
-            if (result.success) {
-                return { success: true, method: 'http-body', attempted, error: null };
-            }
+            pageLoaded = result.success;
         }
 
         // --- Method 4: Mailto fallback ---
@@ -371,10 +372,14 @@ class UnsubscribeService {
             }
         }
 
-        // All methods failed or none were available
-        const error = attempted.length === 0
-            ? 'No unsubscribe methods available'
-            : 'All unsubscribe methods failed';
+        // Nothing verified. Distinguish "a page loaded but may need the user"
+        // from outright failure so the app can say what to do next.
+        let error = 'All unsubscribe methods failed';
+        if (attempted.length === 0) {
+            error = 'No unsubscribe methods available';
+        } else if (pageLoaded) {
+            error = 'unsubscribe-page-needs-confirmation';
+        }
 
         return { success: false, method: null, attempted, error };
     }
