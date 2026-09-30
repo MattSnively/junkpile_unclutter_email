@@ -71,6 +71,7 @@
 		100000000000000000000502 /* UnsubscribeOutcomeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000502 /* UnsubscribeOutcomeTests.swift */; };
 		100000000000000000000503 /* AchievementIconTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000503 /* AchievementIconTests.swift */; };
 		100000000000000000000504 /* SwipeViewModelQueueTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000504 /* SwipeViewModelQueueTests.swift */; };
+		100000000000000000000505 /* RepeatSenderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000505 /* RepeatSenderTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -93,6 +94,7 @@
 		200000000000000000000502 /* UnsubscribeOutcomeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnsubscribeOutcomeTests.swift; sourceTree = "<group>"; };
 		200000000000000000000503 /* AchievementIconTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AchievementIconTests.swift; sourceTree = "<group>"; };
 		200000000000000000000504 /* SwipeViewModelQueueTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwipeViewModelQueueTests.swift; sourceTree = "<group>"; };
+		200000000000000000000505 /* RepeatSenderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepeatSenderTests.swift; sourceTree = "<group>"; };
 		/* Models */
 		200000000000000000000001 /* PlayerProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerProfile.swift; sourceTree = "<group>"; };
 		200000000000000000000002 /* Session.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Session.swift; sourceTree = "<group>"; };
@@ -191,6 +193,7 @@
 				200000000000000000000502 /* UnsubscribeOutcomeTests.swift */,
 				200000000000000000000503 /* AchievementIconTests.swift */,
 				200000000000000000000504 /* SwipeViewModelQueueTests.swift */,
+				200000000000000000000505 /* RepeatSenderTests.swift */,
 			);
 			path = JunkpileTests;
 			sourceTree = "<group>";
@@ -519,6 +522,7 @@
 				100000000000000000000502 /* UnsubscribeOutcomeTests.swift in Sources */,
 				100000000000000000000503 /* AchievementIconTests.swift in Sources */,
 				100000000000000000000504 /* SwipeViewModelQueueTests.swift in Sources */,
+				100000000000000000000505 /* RepeatSenderTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
