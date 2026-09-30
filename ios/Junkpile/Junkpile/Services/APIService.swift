@@ -171,7 +171,9 @@ final class APIService {
         // Check token validity and refresh if needed
         try await ensureValidToken()
 
-        let endpoint = "/api/emails"
+        // Opts in to senders who ignored an earlier unsubscribe; this build
+        // shows them with a warning on the card
+        let endpoint = "/api/emails?includeRepeatSenders=1"
         let response: EmailsResponse = try await get(endpoint, authenticated: true)
 
         guard response.success else {
