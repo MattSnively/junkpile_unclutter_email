@@ -33,7 +33,8 @@ function stubGmail(service, pages) {
                     if (m.unsub !== false) {
                         headers.push({ name: 'List-Unsubscribe', value: '<https://example.com/u>' });
                     }
-                    return { data: { snippet: '', payload: { headers, mimeType: 'text/plain', body: {} } } };
+                    const internalDate = m.received ? String(Date.parse(m.received)) : undefined;
+                    return { data: { snippet: '', internalDate, payload: { headers, mimeType: 'text/plain', body: {} } } };
                 })
             }
         }
@@ -82,6 +83,62 @@ describe('GmailService batch building', () => {
 
         const emails = await service.getEmailsWithUnsubscribe({ excludeSenders: new Set(['weekly@one.com']) });
         expect(emails.map(e => e.id)).toEqual(['other']);
+    });
+
+    describe('senders who ignored an unsubscribe', () => {
+        const window = new Map([['news@ranger.test', {
+            unsubscribedAt: new Date('2026-09-24T14:32:41Z'),
+            deadline: new Date('2026-10-08T14:32:41Z')
+        }]]);
+
+        test('come back, flagged, once past the 10-business-day window', async () => {
+            stubGmail(service, [[
+                { id: 'late', from: 'Ranger <news@ranger.test>', received: '2026-10-09T09:00:00Z' },
+                { id: 'other', from: 'other@two.com' }
+            ]]);
+
+            const emails = await service.getEmailsWithUnsubscribe({
+                excludeSenders: new Set(['news@ranger.test']),
+                repeatSenders: window
+            });
+
+            expect(emails.map(e => e.id)).toEqual(['late', 'other']);
+            expect(emails[0].ignoredUnsubscribe).toEqual({ unsubscribedAt: '2026-09-24T14:32:41.000Z' });
+            expect(emails[1].ignoredUnsubscribe).toBeUndefined();
+        });
+
+        test('stay hidden while the sender is still within the window', async () => {
+            stubGmail(service, [[{ id: 'early', from: 'news@ranger.test', received: '2026-10-01T09:00:00Z' }]]);
+
+            const emails = await service.getEmailsWithUnsubscribe({
+                excludeSenders: new Set(['news@ranger.test']),
+                repeatSenders: window
+            });
+
+            expect(emails).toEqual([]);
+        });
+
+        test('stay hidden unless the caller asks for them', async () => {
+            stubGmail(service, [[{ id: 'late', from: 'news@ranger.test', received: '2026-10-09T09:00:00Z' }]]);
+
+            const emails = await service.getEmailsWithUnsubscribe({ excludeSenders: new Set(['news@ranger.test']) });
+
+            expect(emails).toEqual([]);
+        });
+
+        test('appear once per batch, newest message first', async () => {
+            stubGmail(service, [[
+                { id: 'newest', from: 'news@ranger.test', received: '2026-10-12T09:00:00Z' },
+                { id: 'older', from: 'news@ranger.test', received: '2026-10-09T09:00:00Z' }
+            ]]);
+
+            const emails = await service.getEmailsWithUnsubscribe({
+                excludeSenders: new Set(['news@ranger.test']),
+                repeatSenders: window
+            });
+
+            expect(emails.map(e => e.id)).toEqual(['newest']);
+        });
     });
 
     test('pages until the batch is full', async () => {

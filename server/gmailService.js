@@ -61,13 +61,16 @@ class GmailService {
      * @param {Object} [options]
      * @param {Set<string>} [options.excludeIds] - Message IDs already decided
      * @param {Set<string>} [options.excludeSenders] - Sender addresses already decided
+     * @param {Map<string, {unsubscribedAt: Date, deadline: Date}>} [options.repeatSenders] -
+     *   Unsubscribed senders to let back in, flagged, when a message arrives after the deadline
      * @param {number} [options.limit=20] - Batch size to return
      * @param {number} [options.maxScan=200] - Upper bound on messages examined
      * @returns {Promise<Array>} Array of email objects with unsubscribe data
      */
-    async getEmailsWithUnsubscribe({ excludeIds = new Set(), excludeSenders = new Set(), limit = 20, maxScan = 200 } = {}) {
+    async getEmailsWithUnsubscribe({ excludeIds = new Set(), excludeSenders = new Set(), repeatSenders = new Map(), limit = 20, maxScan = 200 } = {}) {
         try {
             const seenSenders = new Set(excludeSenders);
+            const resurfaced = new Set();
             const uniqueEmails = [];
             let pageToken;
             let scanned = 0;
@@ -94,11 +97,19 @@ class GmailService {
                 for (const email of emails) {
                     if (email && this.canUnsubscribe(email.unsubscribeData)) {
                         const sender = this.extractSenderAddress(email.rawHeaders.from);
+                        const repeat = repeatSenders.get(sender);
                         if (!seenSenders.has(sender)) {
                             seenSenders.add(sender);
                             uniqueEmails.push(email);
-                            if (uniqueEmails.length >= limit) break;
+                        } else if (repeat && !resurfaced.has(sender) && email.receivedAt > repeat.deadline.getTime()) {
+                            // Unsubscribed, yet still mailing after the grace window
+                            resurfaced.add(sender);
+                            uniqueEmails.push({
+                                ...email,
+                                ignoredUnsubscribe: { unsubscribedAt: repeat.unsubscribedAt.toISOString() }
+                            });
                         }
+                        if (uniqueEmails.length >= limit) break;
                     }
                 }
 
@@ -222,6 +233,8 @@ class GmailService {
                 // Gmail API's pre-sanitized snippet — plain text with no HTML/CSS.
                 // Used as the primary preview text on iOS to avoid CSS leakage.
                 snippet: message.snippet || '',
+                // When Gmail received it (ms since epoch), for the repeat-sender window
+                receivedAt: Number(message.internalDate) || null,
                 // The iOS card treats a missing URL as "no unsubscribe option",
                 // so mailto-only senders surface their mailto link here.
                 unsubscribeUrl: unsubscribeData.primaryUrl || unsubscribeData.mailtoUrl,

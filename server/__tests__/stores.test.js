@@ -201,6 +201,25 @@ describeWithDb('stores (Postgres)', () => {
             expect(none.senders.size).toBe(0);
         });
 
+        test('getDecided dates each sender\'s latest unsubscribe, unless a later keep overrides it', async () => {
+            const at = (iso) => db.pool.query(
+                'UPDATE decisions SET created_at = $1 WHERE email_id = $2', [iso, iso.slice(0, 10)]
+            );
+            await decisionStore.recordDecision('u1', { emailId: '2026-09-01', decision: 'unsubscribe', senderAddress: 'ranger@x.com' });
+            await decisionStore.recordDecision('u1', { emailId: '2026-09-24', decision: 'unsubscribe', senderAddress: 'ranger@x.com' });
+            await decisionStore.recordDecision('u1', { emailId: '2026-09-02', decision: 'unsubscribe', senderAddress: 'changed@x.com' });
+            await decisionStore.recordDecision('u1', { emailId: '2026-09-20', decision: 'keep', senderAddress: 'changed@x.com' });
+            await decisionStore.recordDecision('u1', { emailId: '2026-09-03', decision: 'keep', senderAddress: 'kept@x.com' });
+            for (const iso of ['2026-09-01T12:00:00Z', '2026-09-24T14:32:41Z', '2026-09-02T12:00:00Z', '2026-09-20T12:00:00Z', '2026-09-03T12:00:00Z']) {
+                await at(iso);
+            }
+
+            const { unsubscribedAt } = await decisionStore.getDecided('u1');
+
+            expect([...unsubscribedAt.keys()]).toEqual(['ranger@x.com']);
+            expect(unsubscribedAt.get('ranger@x.com').toISOString()).toBe('2026-09-24T14:32:41.000Z');
+        });
+
         test('deleteByUser removes only that user\'s decisions', async () => {
             await decisionStore.recordDecision('gone', { emailId: 'm1', decision: 'keep' });
             await decisionStore.recordDecision('gone', { emailId: 'm2', decision: 'unsubscribe' });

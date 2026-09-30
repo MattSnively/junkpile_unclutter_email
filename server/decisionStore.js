@@ -30,21 +30,34 @@ async function recordDecision(userKey, { emailId, decision, unsubscribeMethod, s
 /**
  * Everything a user has already decided on, so a new batch can skip it.
  *
+ * `unsubscribedAt` holds each sender whose most recent decision is an
+ * unsubscribe, with its date, so mail they keep sending can be spotted.
+ * A later keep means the user changed their mind, so that sender is left out.
+ *
  * @param {string} userKey
- * @returns {Promise<{emailIds: Set<string>, senders: Set<string>}>}
+ * @returns {Promise<{emailIds: Set<string>, senders: Set<string>, unsubscribedAt: Map<string, Date>}>}
  */
 async function getDecided(userKey) {
     const { rows } = await pool.query(
-        'SELECT email_id, sender_address FROM decisions WHERE user_key = $1',
+        `SELECT email_id, sender_address, decision, created_at FROM decisions
+         WHERE user_key = $1 ORDER BY created_at`,
         [userKey]
     );
     const emailIds = new Set();
     const senders = new Set();
+    const unsubscribedAt = new Map();
     for (const row of rows) {
         emailIds.add(row.email_id);
-        if (row.sender_address) senders.add(row.sender_address);
+        if (!row.sender_address) continue;
+        senders.add(row.sender_address);
+        // Rows are oldest first, so the last write per sender is their latest decision
+        if (row.decision === 'unsubscribe') {
+            unsubscribedAt.set(row.sender_address, row.created_at);
+        } else {
+            unsubscribedAt.delete(row.sender_address);
+        }
     }
-    return { emailIds, senders };
+    return { emailIds, senders, unsubscribedAt };
 }
 
 /**

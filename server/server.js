@@ -8,6 +8,7 @@ const crypto = require('crypto');
 const { google } = require('googleapis');
 const GmailService = require('./gmailService');
 const { createOAuthClient, oauthClientFor, withGrantedScope } = require('./oauthClient');
+const { repeatSenderWindows } = require('./repeatSenders');
 const { verifyAppleToken } = require('./appleAuth');
 const { exchangeAuthorizationCode, revokeAppleToken } = require('./appleRevoke');
 const { generateSessionToken, verifySessionToken } = require('./sessionToken');
@@ -638,9 +639,13 @@ app.get('/api/emails', authenticateRequest, requireGmail, async (req, res) => {
         // Skip anything this user already decided on, otherwise the same
         // senders come back every session until newer mail displaces them.
         const decided = await decisionStore.getDecided(req.userKey);
+        // Opt-in because older app builds would show these senders again
+        // without the "they're still emailing you" warning
+        const includeRepeatSenders = req.query.includeRepeatSenders === '1';
         const emails = await gmailService.getEmailsWithUnsubscribe({
             excludeIds: decided.emailIds,
-            excludeSenders: decided.senders
+            excludeSenders: decided.senders,
+            repeatSenders: includeRepeatSenders ? repeatSenderWindows(decided.unsubscribedAt) : new Map()
         });
 
         res.json({
