@@ -103,6 +103,7 @@ describe('unsubscribeFailureCode', () => {
         ['no-unsubscribe-data', 'UNSUBSCRIBE_FAILED_NO_METHOD'],
         ['not-authenticated', 'UNSUBSCRIBE_FAILED_NOT_AUTHENTICATED'],
         ['gmail.send scope not available', 'UNSUBSCRIBE_FAILED_SCOPE'],
+        ['unsubscribe-page-needs-confirmation', 'UNSUBSCRIBE_NEEDS_CONFIRMATION'],
         ['Malformed URL', 'UNSUBSCRIBE_FAILED_BLOCKED_URL'],
         ['Disallowed protocol: ftp:', 'UNSUBSCRIBE_FAILED_BLOCKED_URL'],
         ['Private/internal host not allowed', 'UNSUBSCRIBE_FAILED_BLOCKED_URL'],

@@ -388,12 +388,13 @@ describe('UnsubscribeService', () => {
             expect(global.fetch).toHaveBeenCalledTimes(1);
         });
 
-        it('falls through to http-header when RFC 8058 fails', async () => {
-            // First call: RFC 8058 POST → 400
-            // Second call: HTTP POST → 200
+        // A 200 from a plain link usually just means the sender's unsubscribe
+        // page loaded; the user may still have to click "Confirm" on it. Seen in
+        // production: rfc8058 400, then http-get 200 reported as Confirmed.
+        it('reports a plain-link 200 as unverified, not confirmed', async () => {
             global.fetch = jest.fn()
-                .mockResolvedValueOnce({ ok: false, status: 400 })
-                .mockResolvedValueOnce({ ok: true, status: 200 });
+                .mockResolvedValueOnce({ ok: false, status: 400 })   // RFC 8058
+                .mockResolvedValueOnce({ ok: true, status: 200 });   // header POST
 
             const result = await service.execute({
                 httpUrls: ['https://example.com/unsub'],
@@ -401,9 +402,40 @@ describe('UnsubscribeService', () => {
                 gmailService: null
             });
 
-            expect(result.success).toBe(true);
-            expect(result.method).toBe('http-header');
+            expect(result.success).toBe(false);
+            expect(result.method).toBeNull();
             expect(result.attempted).toEqual(['rfc8058', 'http-header']);
+            expect(result.error).toBe('unsubscribe-page-needs-confirmation');
+        });
+
+        it('skips the body link once a header link has loaded a page', async () => {
+            global.fetch = jest.fn().mockResolvedValue({ ok: true, status: 200 });
+
+            const result = await service.execute({
+                httpUrls: ['https://example.com/unsub'],
+                bodyUrl: 'https://example.com/body-unsub',
+                hasListUnsubscribePost: false,
+                gmailService: null
+            });
+
+            expect(result.attempted).toEqual(['http-header']);
+            expect(global.fetch).toHaveBeenCalledTimes(1);
+        });
+
+        it('still sends the mailto unsubscribe after a plain-link page loads', async () => {
+            global.fetch = jest.fn().mockResolvedValue({ ok: true, status: 200 });
+            const mockGmail = { hasSendScope: true, sendEmail: jest.fn().mockResolvedValue(undefined) };
+
+            const result = await service.execute({
+                httpUrls: ['https://example.com/unsub'],
+                mailtoUrl: 'mailto:unsub@example.com',
+                hasListUnsubscribePost: false,
+                gmailService: mockGmail
+            });
+
+            expect(result.success).toBe(true);
+            expect(result.method).toBe('mailto');
+            expect(result.attempted).toEqual(['http-header', 'mailto']);
         });
 
         it('falls through to body URL when header URLs fail', async () => {
@@ -421,8 +453,9 @@ describe('UnsubscribeService', () => {
                 gmailService: null
             });
 
-            expect(result.success).toBe(true);
-            expect(result.method).toBe('http-body');
+            expect(result.success).toBe(false);
+            expect(result.attempted).toEqual(['rfc8058', 'http-header', 'http-body']);
+            expect(result.error).toBe('unsubscribe-page-needs-confirmation');
         });
 
         it('tries mailto as last resort', async () => {
@@ -486,8 +519,9 @@ describe('UnsubscribeService', () => {
                 gmailService: null
             });
 
-            expect(result.success).toBe(true);
-            expect(result.method).toBe('http-body');
+            expect(result.success).toBe(false);
+            expect(result.attempted).toEqual(['http-body']);
+            expect(result.error).toBe('unsubscribe-page-needs-confirmation');
         });
 
         it('skips RFC 8058 when hasListUnsubscribePost is false', async () => {
@@ -499,10 +533,9 @@ describe('UnsubscribeService', () => {
                 gmailService: null
             });
 
-            expect(result.success).toBe(true);
-            expect(result.method).toBe('http-header');
+            expect(result.success).toBe(false);
             // Should NOT have attempted rfc8058
-            expect(result.attempted).not.toContain('rfc8058');
+            expect(result.attempted).toEqual(['http-header']);
         });
     });
 
