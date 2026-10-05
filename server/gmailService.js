@@ -63,11 +63,13 @@ class GmailService {
      * @param {Set<string>} [options.excludeSenders] - Sender addresses already decided
      * @param {Map<string, {unsubscribedAt: Date, deadline: Date}>} [options.repeatSenders] -
      *   Unsubscribed senders to let back in, flagged, when a message arrives after the deadline
+     * @param {Map<string, Date>} [options.unconfirmedSenders] - Senders whose last unsubscribe
+     *   request may never have gone out; flagged so the user knows to try again
      * @param {number} [options.limit=20] - Batch size to return
      * @param {number} [options.maxScan=200] - Upper bound on messages examined
      * @returns {Promise<Array>} Array of email objects with unsubscribe data
      */
-    async getEmailsWithUnsubscribe({ excludeIds = new Set(), excludeSenders = new Set(), repeatSenders = new Map(), limit = 20, maxScan = 200 } = {}) {
+    async getEmailsWithUnsubscribe({ excludeIds = new Set(), excludeSenders = new Set(), repeatSenders = new Map(), unconfirmedSenders = new Map(), limit = 20, maxScan = 200 } = {}) {
         try {
             const seenSenders = new Set(excludeSenders);
             const resurfaced = new Set();
@@ -100,7 +102,10 @@ class GmailService {
                         const repeat = repeatSenders.get(sender);
                         if (!seenSenders.has(sender)) {
                             seenSenders.add(sender);
-                            uniqueEmails.push(email);
+                            const attemptedAt = unconfirmedSenders.get(sender);
+                            uniqueEmails.push(attemptedAt
+                                ? { ...email, unconfirmedUnsubscribe: { attemptedAt: attemptedAt.toISOString() } }
+                                : email);
                         } else if (repeat && !resurfaced.has(sender) && email.receivedAt > repeat.deadline.getTime()) {
                             // Unsubscribed, yet still mailing after the grace window
                             resurfaced.add(sender);

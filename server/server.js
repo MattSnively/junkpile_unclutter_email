@@ -644,8 +644,11 @@ app.get('/api/emails', authenticateRequest, requireGmail, async (req, res) => {
         const includeRepeatSenders = req.query.includeRepeatSenders === '1';
         const emails = await gmailService.getEmailsWithUnsubscribe({
             excludeIds: decided.emailIds,
-            excludeSenders: decided.senders,
-            repeatSenders: includeRepeatSenders ? repeatSenderWindows(decided.unsubscribedAt) : new Map()
+            excludeSenders: includeRepeatSenders
+                ? decided.senders
+                : new Set([...decided.senders, ...decided.unconfirmedAt.keys()]),
+            repeatSenders: includeRepeatSenders ? repeatSenderWindows(decided.unsubscribedAt) : new Map(),
+            unconfirmedSenders: includeRepeatSenders ? decided.unconfirmedAt : new Map()
         });
 
         res.json({

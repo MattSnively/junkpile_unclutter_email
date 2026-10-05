@@ -141,6 +141,22 @@ describe('GmailService batch building', () => {
         });
     });
 
+    test('flags senders whose last unsubscribe was never verified', async () => {
+        stubGmail(service, [[
+            { id: 'retry', from: 'Shop <deals@shop.test>' },
+            { id: 'retry-older', from: 'deals@shop.test' },
+            { id: 'other', from: 'other@two.com' }
+        ]]);
+
+        const emails = await service.getEmailsWithUnsubscribe({
+            unconfirmedSenders: new Map([['deals@shop.test', new Date('2026-09-24T14:32:41Z')]])
+        });
+
+        expect(emails.map(e => e.id)).toEqual(['retry', 'other']);
+        expect(emails[0].unconfirmedUnsubscribe).toEqual({ attemptedAt: '2026-09-24T14:32:41.000Z' });
+        expect(emails[1].unconfirmedUnsubscribe).toBeUndefined();
+    });
+
     test('pages until the batch is full', async () => {
         const page = (n) => Array.from({ length: 3 }, (_, i) => ({ id: `${n}-${i}`, from: `s${n}${i}@x.com` }));
         const { listCalls } = stubGmail(service, [page(0), page(1), page(2)]);
