@@ -27,6 +27,10 @@ struct Email: Codable, Identifiable, Equatable {
     /// Raw email headers for additional parsing if needed
     let rawHeaders: EmailHeaders?
 
+    /// Set when the user already unsubscribed from this sender and they kept
+    /// emailing past the 10-business-day window. Nil for everyone else.
+    var ignoredUnsubscribe: IgnoredUnsubscribe?
+
     /// Computed preview text (first 150 characters of subject or a default message)
     var preview: String {
         if subject.isEmpty {
@@ -38,6 +42,27 @@ struct Email: Codable, Identifiable, Equatable {
     /// Check if email has a valid unsubscribe option
     var hasUnsubscribeOption: Bool {
         return unsubscribeUrl != nil && !unsubscribeUrl!.isEmpty
+    }
+}
+
+/// A sender who kept emailing after the user unsubscribed, so they may not be
+/// honoring the request. Swiping left again retries the unsubscribe.
+struct IgnoredUnsubscribe: Codable, Equatable {
+    /// ISO-8601 with milliseconds, as the server sends it (JavaScript toISOString)
+    let unsubscribedAt: String
+
+    var unsubscribedDate: Date? {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        if let date = formatter.date(from: unsubscribedAt) { return date }
+        formatter.formatOptions = [.withInternetDateTime]
+        return formatter.date(from: unsubscribedAt)
+    }
+
+    /// Shown under the warning title on the card
+    var message: String {
+        let when = unsubscribedDate.map { "on \($0.formatted(date: .abbreviated, time: .omitted))" } ?? "before"
+        return "You unsubscribed \(when), but they're still sending. They may not be honoring your request."
     }
 }
 
