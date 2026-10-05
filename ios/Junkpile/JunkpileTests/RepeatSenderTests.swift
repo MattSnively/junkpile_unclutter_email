@@ -1,8 +1,9 @@
 import XCTest
 @testable import Junkpile
 
-/// The server flags senders who kept emailing after an unsubscribe; the card
-/// warning depends on this decoding correctly and saying when it happened.
+/// The server flags senders who kept emailing after an unsubscribe, or whose
+/// unsubscribe never went through; the card warning depends on this decoding
+/// correctly and saying when it happened.
 final class RepeatSenderTests: XCTestCase {
 
     private func decodeEmail(_ json: String) throws -> Email {
@@ -41,5 +42,28 @@ final class RepeatSenderTests: XCTestCase {
     func testUnreadableDateStillWarns() {
         let ignored = IgnoredUnsubscribe(unsubscribedAt: "not a date")
         XCTAssertTrue(ignored.message.hasPrefix("You unsubscribed before"))
+    }
+
+    func testRegularEmailHasNoCardWarning() throws {
+        let email = try decodeEmail("{\(baseFields)}")
+        XCTAssertNil(email.senderWarning)
+    }
+
+    func testUnconfirmedUnsubscribeWarnsToTryAgain() throws {
+        let email = try decodeEmail("""
+            {\(baseFields), "unconfirmedUnsubscribe": { "attemptedAt": "2026-09-24T14:32:41.000Z" }}
+            """)
+
+        let warning = try XCTUnwrap(email.senderWarning)
+        XCTAssertEqual(warning.title, "Unsubscribe didn't go through")
+        XCTAssertTrue(warning.message.contains("Swipe left to try again"))
+        XCTAssertNotNil(email.unconfirmedUnsubscribe?.attemptedDate)
+    }
+
+    func testIgnoredUnsubscribeWarnsStillEmailing() throws {
+        let email = try decodeEmail("""
+            {\(baseFields), "ignoredUnsubscribe": { "unsubscribedAt": "2026-09-24T14:32:41.000Z" }}
+            """)
+        XCTAssertEqual(email.senderWarning?.title, "Still emailing you")
     }
 }

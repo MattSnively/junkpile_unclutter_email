@@ -31,6 +31,17 @@ struct Email: Codable, Identifiable, Equatable {
     /// emailing past the 10-business-day window. Nil for everyone else.
     var ignoredUnsubscribe: IgnoredUnsubscribe?
 
+    /// Set when the user swiped left on this sender before but the request
+    /// may never have reached them. Nil for everyone else.
+    var unconfirmedUnsubscribe: UnconfirmedUnsubscribe?
+
+    /// The warning to show on the card, if this sender has an unsubscribe history
+    var senderWarning: (title: String, message: String)? {
+        if let ignored = ignoredUnsubscribe { return ("Still emailing you", ignored.message) }
+        if let unconfirmed = unconfirmedUnsubscribe { return ("Unsubscribe didn't go through", unconfirmed.message) }
+        return nil
+    }
+
     /// Computed preview text (first 150 characters of subject or a default message)
     var preview: String {
         if subject.isEmpty {
@@ -51,19 +62,39 @@ struct IgnoredUnsubscribe: Codable, Equatable {
     /// ISO-8601 with milliseconds, as the server sends it (JavaScript toISOString)
     let unsubscribedAt: String
 
-    var unsubscribedDate: Date? {
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        if let date = formatter.date(from: unsubscribedAt) { return date }
-        formatter.formatOptions = [.withInternetDateTime]
-        return formatter.date(from: unsubscribedAt)
-    }
+    var unsubscribedDate: Date? { parseServerDate(unsubscribedAt) }
 
     /// Shown under the warning title on the card
     var message: String {
         let when = unsubscribedDate.map { "on \($0.formatted(date: .abbreviated, time: .omitted))" } ?? "before"
         return "You unsubscribed \(when), but they're still sending. They may not be honoring your request."
     }
+}
+
+/// A sender the user tried to unsubscribe from, where no request was verified
+/// as sent: the cascade failed, or found only a link needing confirmation.
+/// Swiping left again retries the unsubscribe.
+struct UnconfirmedUnsubscribe: Codable, Equatable {
+    /// ISO-8601 with milliseconds, as the server sends it (JavaScript toISOString)
+    let attemptedAt: String
+
+    var attemptedDate: Date? { parseServerDate(attemptedAt) }
+
+    /// Shown under the warning title on the card
+    var message: String {
+        let when = attemptedDate.map { "on \($0.formatted(date: .abbreviated, time: .omitted))" } ?? "before"
+        return "You tried to unsubscribe \(when), but we couldn't confirm the request was received. Swipe left to try again."
+    }
+}
+
+/// JavaScript's toISOString includes milliseconds, which the default
+/// ISO8601DateFormatter options reject
+private func parseServerDate(_ string: String) -> Date? {
+    let formatter = ISO8601DateFormatter()
+    formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+    if let date = formatter.date(from: string) { return date }
+    formatter.formatOptions = [.withInternetDateTime]
+    return formatter.date(from: string)
 }
 
 /// Raw email headers returned from the API

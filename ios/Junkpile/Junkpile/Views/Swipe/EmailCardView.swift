@@ -35,8 +35,8 @@ struct EmailCardView: View {
 
             // Card content
             VStack(alignment: .leading, spacing: 16) {
-                if let ignored = email.ignoredUnsubscribe {
-                    repeatSenderWarning(ignored)
+                if let warning = email.senderWarning {
+                    senderWarningBanner(title: warning.title, message: warning.message)
                 }
 
                 // Sender row
@@ -87,23 +87,23 @@ struct EmailCardView: View {
     /// Format: "Email from [sender]. Subject: [subject]."
     private var cardAccessibilityLabel: String {
         let subject = email.subject.isEmpty ? "No subject" : email.subject
-        let warning = email.ignoredUnsubscribe.map { "Warning: still emailing you. \($0.message) " } ?? ""
+        let warning = email.senderWarning.map { "Warning: \($0.title). \($0.message) " } ?? ""
         return "\(warning)Email from \(email.sender). Subject: \(subject)."
     }
 
     // MARK: - Components
 
-    /// Flags a sender who kept emailing after the user unsubscribed. Icon and
+    /// Flags a sender the user already tried to unsubscribe from. Icon and
     /// title carry the meaning, so it doesn't rely on the orange alone.
-    private func repeatSenderWarning(_ ignored: IgnoredUnsubscribe) -> some View {
+    private func senderWarningBanner(title: String, message: String) -> some View {
         HStack(alignment: .top, spacing: 8) {
             Image(systemName: "exclamationmark.triangle.fill")
                 .foregroundColor(.orange)
             VStack(alignment: .leading, spacing: 2) {
-                Text("Still emailing you")
+                Text(title)
                     .font(.subheadline.bold())
                     .foregroundColor(.primary)
-                Text(ignored.message)
+                Text(message)
                     .font(.caption)
                     .foregroundColor(.secondary)
                     .fixedSize(horizontal: false, vertical: true)

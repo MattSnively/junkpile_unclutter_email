@@ -188,7 +188,7 @@ describeWithDb('stores (Postgres)', () => {
 
         test('getDecided returns this user\'s message IDs and sender addresses', async () => {
             await decisionStore.recordDecision('u1', { emailId: 'm1', decision: 'keep', senderAddress: 'a@x.com' });
-            await decisionStore.recordDecision('u1', { emailId: 'm2', decision: 'unsubscribe', senderAddress: 'b@y.com' });
+            await decisionStore.recordDecision('u1', { emailId: 'm2', decision: 'unsubscribe', unsubscribeMethod: 'rfc8058', senderAddress: 'b@y.com' });
             await decisionStore.recordDecision('u1', { emailId: 'm3', decision: 'keep' }); // legacy row, no sender
             await decisionStore.recordDecision('u2', { emailId: 'm9', decision: 'keep', senderAddress: 'z@z.com' });
 
@@ -205,9 +205,9 @@ describeWithDb('stores (Postgres)', () => {
             const at = (iso) => db.pool.query(
                 'UPDATE decisions SET created_at = $1 WHERE email_id = $2', [iso, iso.slice(0, 10)]
             );
-            await decisionStore.recordDecision('u1', { emailId: '2026-09-01', decision: 'unsubscribe', senderAddress: 'ranger@x.com' });
-            await decisionStore.recordDecision('u1', { emailId: '2026-09-24', decision: 'unsubscribe', senderAddress: 'ranger@x.com' });
-            await decisionStore.recordDecision('u1', { emailId: '2026-09-02', decision: 'unsubscribe', senderAddress: 'changed@x.com' });
+            await decisionStore.recordDecision('u1', { emailId: '2026-09-01', decision: 'unsubscribe', unsubscribeMethod: 'rfc8058', senderAddress: 'ranger@x.com' });
+            await decisionStore.recordDecision('u1', { emailId: '2026-09-24', decision: 'unsubscribe', unsubscribeMethod: 'rfc8058', senderAddress: 'ranger@x.com' });
+            await decisionStore.recordDecision('u1', { emailId: '2026-09-02', decision: 'unsubscribe', unsubscribeMethod: 'mailto', senderAddress: 'changed@x.com' });
             await decisionStore.recordDecision('u1', { emailId: '2026-09-20', decision: 'keep', senderAddress: 'changed@x.com' });
             await decisionStore.recordDecision('u1', { emailId: '2026-09-03', decision: 'keep', senderAddress: 'kept@x.com' });
             for (const iso of ['2026-09-01T12:00:00Z', '2026-09-24T14:32:41Z', '2026-09-02T12:00:00Z', '2026-09-20T12:00:00Z', '2026-09-03T12:00:00Z']) {
@@ -218,6 +218,24 @@ describeWithDb('stores (Postgres)', () => {
 
             expect([...unsubscribedAt.keys()]).toEqual(['ranger@x.com']);
             expect(unsubscribedAt.get('ranger@x.com').toISOString()).toBe('2026-09-24T14:32:41.000Z');
+        });
+
+        test('getDecided lets senders back in when their unsubscribe was never verified', async () => {
+            await decisionStore.recordDecision('u1', { emailId: 'm1', decision: 'unsubscribe', unsubscribeMethod: null, senderAddress: 'failed@x.com' });
+            await decisionStore.recordDecision('u1', { emailId: 'm2', decision: 'unsubscribe', unsubscribeMethod: 'http-get', senderAddress: 'link@x.com' });
+            await decisionStore.recordDecision('u1', { emailId: 'm3', decision: 'unsubscribe', unsubscribeMethod: 'mailto', senderAddress: 'sent@x.com' });
+            await decisionStore.recordDecision('u1', { emailId: 'm4', decision: 'unsubscribe', unsubscribeMethod: 'rfc8058', senderAddress: 'retried@x.com' });
+            await decisionStore.recordDecision('u1', { emailId: 'm5', decision: 'unsubscribe', unsubscribeMethod: null, senderAddress: 'retried@x.com' });
+            await decisionStore.recordDecision('u1', { emailId: 'm6', decision: 'unsubscribe', unsubscribeMethod: null, senderAddress: 'kept@x.com' });
+            await decisionStore.recordDecision('u1', { emailId: 'm7', decision: 'keep', senderAddress: 'kept@x.com' });
+
+            const decided = await decisionStore.getDecided('u1');
+
+            expect([...decided.senders].sort()).toEqual(['kept@x.com', 'sent@x.com']);
+            expect([...decided.unsubscribedAt.keys()]).toEqual(['sent@x.com']);
+            expect([...decided.unconfirmedAt.keys()].sort()).toEqual(['failed@x.com', 'link@x.com', 'retried@x.com']);
+            // The failed message itself stays hidden; the sender's next one is what comes back
+            expect(decided.emailIds.has('m1')).toBe(true);
         });
 
         test('deleteByUser removes only that user\'s decisions', async () => {
